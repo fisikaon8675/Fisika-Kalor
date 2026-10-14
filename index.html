@@ -1,0 +1,2380 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Petualang Candi Nusantara - Tantangan Fisika Kalor</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600;700&family=Plus+Jakarta+Sans:wght@400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            overflow: hidden;
+            user-select: none;
+            -webkit-user-select: none;
+            background-color: #1a2e1a;
+        }
+        .font-game {
+            font-family: 'Fredoka', sans-serif;
+        }
+        canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+            touch-action: none;
+        }
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: rgba(254, 243, 199, 0.5);
+            border-radius: 8px;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #d97706;
+            border-radius: 8px;
+        }
+        .btn-game {
+            transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 4px 0 #92400e;
+        }
+        .btn-game:active {
+            transform: translateY(4px);
+            box-shadow: 0 0px 0 #92400e;
+        }
+        .btn-dpad {
+            background: rgba(255, 255, 255, 0.25);
+            backdrop-filter: blur(4px);
+            border: 2px solid rgba(255, 255, 255, 0.5);
+            transition: background 0.1s, transform 0.1s;
+        }
+        .btn-dpad:active, .btn-dpad.active {
+            background: rgba(251, 191, 36, 0.7);
+            transform: scale(0.92);
+        }
+        @keyframes float {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-6px); }
+        }
+        .animate-float {
+            animation: float 2.5s ease-in-out infinite;
+        }
+    </style>
+</head>
+<body class="relative w-screen h-screen overflow-hidden select-none">
+
+    <!-- Main Game Canvas -->
+    <canvas id="gameCanvas"></canvas>
+
+    <!-- Top HUD Bar -->
+    <div class="fixed top-3 left-3 right-3 flex flex-wrap justify-between items-start pointer-events-none z-20 gap-2">
+        <!-- Title & Status -->
+        <div class="bg-amber-950/90 backdrop-blur-md border-2 border-amber-500/80 text-amber-50 px-4 py-2.5 rounded-2xl shadow-xl pointer-events-auto flex flex-wrap items-center gap-3 sm:gap-4">
+            <div class="flex items-center gap-2.5">
+                <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-500 to-red-600 flex items-center justify-center text-xl shadow-inner border border-amber-300">
+                    🔥
+                </div>
+                <div>
+                    <h1 class="font-game font-bold text-base sm:text-lg leading-tight text-amber-300 tracking-wide">Candi & Eksperimen Kalor</h1>
+                    <p class="text-xs text-amber-200/80" id="locationText">Dataran Nusantara</p>
+                </div>
+            </div>
+            
+            <div class="h-8 w-[1px] bg-amber-700/60 hidden sm:block"></div>
+
+            <!-- Counters -->
+            <div class="flex items-center gap-2 sm:gap-3 text-xs sm:text-sm font-semibold">
+                <div class="bg-amber-900/80 px-2.5 py-1.5 rounded-xl border border-amber-700/60 flex items-center gap-1.5" title="Tantangan Candi Selesai">
+                    <i class="fa-solid fa-fire-flame-curved text-orange-400"></i>
+                    <span>Misi Kalor: <strong id="candiCountText" class="text-amber-300">0/6</strong></span>
+                </div>
+                <div class="bg-amber-900/80 px-2.5 py-1.5 rounded-xl border border-amber-700/60 flex items-center gap-1.5" title="Skor Pemahaman Kalor">
+                    <i class="fa-solid fa-bolt text-yellow-400"></i>
+                    <span id="scoreText">0 XP</span>
+                </div>
+                <div class="bg-amber-900/80 px-2.5 py-1.5 rounded-xl border border-amber-700/60 hidden md:flex items-center gap-1.5" title="Artefak Termodinamika">
+                    <i class="fa-solid fa-gem text-cyan-400"></i>
+                    <span id="relicCountText">0/12</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Action Buttons (Right HUD) -->
+        <div class="flex items-center gap-2 pointer-events-auto">
+            <button id="btnFormula" class="btn-game bg-orange-600 hover:bg-orange-500 text-white font-game font-bold px-3.5 py-2.5 rounded-xl flex items-center gap-2 text-sm border border-orange-300" style="box-shadow: 0 4px 0 #9a3412;">
+                <i class="fa-solid fa-Temperature-high"></i>
+                <span class="hidden sm:inline">Kitab Rumus Kalor</span>
+            </button>
+            <button id="btnJournal" class="btn-game bg-amber-500 hover:bg-amber-400 text-amber-950 font-game font-bold px-3.5 py-2.5 rounded-xl flex items-center gap-2 text-sm border border-amber-300">
+                <i class="fa-solid fa-map-location-dot"></i>
+                <span class="hidden sm:inline">Peta & Misi (6)</span>
+            </button>
+            <button id="btnTime" class="btn-game bg-indigo-600 hover:bg-indigo-500 text-white font-game font-bold px-3 py-2.5 rounded-xl flex items-center justify-center text-sm border border-indigo-400" style="box-shadow: 0 4px 0 #3730a3;" title="Ubah Waktu (Siang/Sore/Malam)">
+                <i id="timeIcon" class="fa-solid fa-sun text-amber-300"></i>
+            </button>
+            <button id="btnAudio" class="btn-game bg-stone-700 hover:bg-stone-600 text-stone-200 font-game font-bold px-3 py-2.5 rounded-xl flex items-center justify-center text-sm border border-stone-500" style="box-shadow: 0 4px 0 #44403c;" title="Suara Efek">
+                <i id="audioIcon" class="fa-solid fa-volume-high"></i>
+            </button>
+        </div>
+    </div>
+
+    <!-- Floating Context Action Prompt (When near a Candi) -->
+    <div id="interactPrompt" class="fixed bottom-28 sm:bottom-12 left-1/2 -translate-x-1/2 z-20 pointer-events-auto hidden">
+        <button id="btnInteract" class="animate-float bg-gradient-to-r from-orange-500 via-amber-500 to-yellow-500 hover:from-orange-400 hover:to-yellow-400 text-amber-950 font-game font-bold px-6 py-3 rounded-2xl shadow-2xl border-2 border-white flex items-center gap-3 text-base sm:text-lg transform transition active:scale-95">
+            <span class="bg-amber-950 text-amber-300 px-2.5 py-0.5 rounded-lg text-xs font-mono border border-amber-500">SPASI / KLIK</span>
+            <span id="interactPromptText">Buka Tantangan Kalor</span>
+            <i class="fa-solid fa-flask-vial text-red-700"></i>
+        </button>
+    </div>
+
+    <!-- Toast Notification -->
+    <div id="toastBanner" class="fixed top-20 left-1/2 -translate-x-1/2 z-30 pointer-events-none transition-all duration-300 opacity-0 -translate-y-4">
+        <div class="bg-amber-900/95 border-2 border-amber-400 text-amber-50 px-5 py-2.5 rounded-2xl shadow-2xl flex items-center gap-3">
+            <span id="toastIcon" class="text-2xl">✨</span>
+            <div>
+                <h4 id="toastTitle" class="font-game font-bold text-sm text-amber-300">Penemuan Baru!</h4>
+                <p id="toastMessage" class="text-xs text-amber-100">Kamu menemukan sesuatu.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Mobile Virtual D-Pad & Action Controls -->
+    <div class="fixed bottom-5 left-5 z-20 md:hidden select-none touch-none">
+        <div class="relative w-36 h-36">
+            <button data-dir="up" class="btn-dpad absolute top-0 left-12 w-12 h-12 rounded-xl flex items-center justify-center text-white text-lg shadow-lg">
+                <i class="fa-solid fa-chevron-up"></i>
+            </button>
+            <button data-dir="down" class="btn-dpad absolute bottom-0 left-12 w-12 h-12 rounded-xl flex items-center justify-center text-white text-lg shadow-lg">
+                <i class="fa-solid fa-chevron-down"></i>
+            </button>
+            <button data-dir="left" class="btn-dpad absolute top-12 left-0 w-12 h-12 rounded-xl flex items-center justify-center text-white text-lg shadow-lg">
+                <i class="fa-solid fa-chevron-left"></i>
+            </button>
+            <button data-dir="right" class="btn-dpad absolute top-12 right-0 w-12 h-12 rounded-xl flex items-center justify-center text-white text-lg shadow-lg">
+                <i class="fa-solid fa-chevron-right"></i>
+            </button>
+            <div class="absolute top-12 left-12 w-12 h-12 rounded-xl bg-white/10 flex items-center justify-center">
+                <div class="w-3 h-3 rounded-full bg-amber-400/60"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Sprint Button (Mobile & Desktop hint) -->
+    <div class="fixed bottom-6 right-5 z-20 flex flex-col items-end gap-2">
+        <button id="btnSprint" class="md:hidden btn-dpad w-16 h-16 rounded-full flex flex-col items-center justify-center text-white shadow-xl border-2 border-amber-300/70">
+            <i class="fa-solid fa-person-running text-xl text-amber-300"></i>
+            <span class="text-[10px] font-bold uppercase tracking-wider">Lari</span>
+        </button>
+        <div class="hidden md:flex bg-stone-900/80 backdrop-blur-md text-stone-300 text-xs px-3.5 py-2 rounded-xl border border-stone-700 items-center gap-3">
+            <span><kbd class="bg-stone-700 px-1.5 py-0.5 rounded text-amber-300 font-mono">WASD</kbd> Jalan</span>
+            <span><kbd class="bg-stone-700 px-1.5 py-0.5 rounded text-amber-300 font-mono">Shift</kbd> Lari</span>
+            <span><kbd class="bg-stone-700 px-1.5 py-0.5 rounded text-amber-300 font-mono">Spasi</kbd> Tantangan Candi</span>
+        </div>
+    </div>
+
+    <!-- Candi Detail & Interactive Physics Challenge Modal -->
+    <div id="candiModal" class="fixed inset-0 bg-black/75 backdrop-blur-sm z-40 hidden items-center justify-center p-3 sm:p-4">
+        <div class="bg-amber-50 border-4 border-amber-700 rounded-3xl max-w-2xl w-full overflow-hidden shadow-2xl flex flex-col max-h-[92vh]">
+            <!-- Header Banner -->
+            <div class="bg-gradient-to-r from-amber-900 via-orange-800 to-amber-900 p-4 sm:p-5 text-amber-50 relative flex items-center justify-between">
+                <div class="flex items-center gap-3.5">
+                    <div id="modalBadge" class="w-12 h-12 rounded-2xl bg-amber-500/30 border-2 border-amber-400 flex items-center justify-center text-2xl shadow-inner">
+                        🛕
+                    </div>
+                    <div>
+                        <div class="flex flex-wrap items-center gap-2">
+                            <span id="modalTopicBadge" class="text-xs font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-orange-500 text-white shadow">Materi: Kalor Jenis</span>
+                            <span id="modalRegion" class="text-xs text-amber-200"><i class="fa-solid fa-location-dot"></i> Magelang</span>
+                        </div>
+                        <h2 id="modalTitle" class="font-game font-bold text-xl sm:text-2xl text-white mt-0.5">Candi Borobudur</h2>
+                    </div>
+                </div>
+                <button id="closeCandiModal" class="w-9 h-9 rounded-xl bg-amber-950/60 hover:bg-amber-950 text-amber-200 flex items-center justify-center transition">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+            </div>
+
+            <!-- Modal Body -->
+            <div class="p-4 sm:p-5 overflow-y-auto space-y-4 text-stone-800">
+                <!-- Context Story & Temple Connection -->
+                <div class="bg-white p-3.5 rounded-2xl border border-amber-200 shadow-sm text-xs sm:text-sm leading-relaxed text-stone-700">
+                    <p id="modalDesc">Deskripsi candi dan fenomena fisis...</p>
+                </div>
+
+                <!-- Interactive Simulation / Formula Box -->
+                <div class="bg-gradient-to-r from-orange-100 to-amber-100 border-l-4 border-orange-600 p-3.5 rounded-r-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                    <div>
+                        <h4 class="font-bold text-xs uppercase tracking-wider text-orange-900 flex items-center gap-1.5">
+                            <i class="fa-solid fa-book-open-reader text-orange-600"></i> Konsep & Rumus Kunci
+                        </h4>
+                        <p id="modalFormulaDesc" class="text-xs text-stone-700 mt-1">Penjelasan singkat rumus...</p>
+                    </div>
+                    <div id="modalFormulaMath" class="bg-amber-950 text-amber-300 font-mono font-bold text-xs sm:text-sm px-3.5 py-2 rounded-xl border border-amber-600 whitespace-nowrap text-center shadow-inner">
+                        Q = m · c · ΔT
+                    </div>
+                </div>
+
+                <!-- 2-Stage Challenge Tabs -->
+                <div class="bg-stone-100 border-2 border-stone-300 rounded-2xl p-4 space-y-3">
+                    <div class="flex items-center justify-between border-b border-stone-300 pb-2.5">
+                        <div class="flex items-center gap-2">
+                            <span class="font-game font-bold text-sm sm:text-base text-amber-950 flex items-center gap-1.5">
+                                <i class="fa-solid fa-fire text-orange-600"></i> Tantangan Lab Candi
+                            </span>
+                            <div class="flex gap-1" id="stagePills">
+                                <!-- Populated dynamically: Soal 1 & Soal 2 -->
+                            </div>
+                        </div>
+                        <span id="quizStatusBadge" class="text-xs font-bold px-2.5 py-0.5 rounded-md bg-amber-200 text-amber-900">0/2 Selesai</span>
+                    </div>
+
+                    <!-- Question Box -->
+                    <div class="bg-white p-3.5 rounded-xl border border-stone-200">
+                        <p id="quizQuestion" class="text-xs sm:text-sm font-bold text-stone-800 leading-relaxed">Pertanyaan tantangan kalor?</p>
+                    </div>
+
+                    <!-- Answer Options -->
+                    <div id="quizOptions" class="space-y-2">
+                        <!-- Dynamically populated options -->
+                    </div>
+
+                    <!-- Hint Button & Box -->
+                    <div class="flex items-center justify-between pt-1">
+                        <button id="btnShowHint" class="text-xs font-bold text-orange-700 hover:text-orange-900 flex items-center gap-1">
+                            <i class="fa-solid fa-lightbulb"></i> Lihat Petunjuk Cara Hitung (Hint)
+                        </button>
+                        <button id="btnNextQuestion" class="hidden bg-amber-600 hover:bg-amber-500 text-white font-bold text-xs px-3.5 py-1.5 rounded-lg transition">
+                            Soal Berikutnya <i class="fa-solid fa-arrow-right ml-1"></i>
+                        </button>
+                    </div>
+
+                    <div id="hintBox" class="hidden bg-amber-50 border border-amber-300 text-amber-900 text-xs p-3 rounded-xl font-mono">
+                        Petunjuk perhitungan...
+                    </div>
+
+                    <!-- Detailed Explanation Feedback -->
+                    <div id="quizFeedback" class="text-xs p-3 rounded-xl hidden leading-relaxed"></div>
+                </div>
+            </div>
+
+            <!-- Footer -->
+            <div class="bg-amber-100 px-5 py-3 border-t border-amber-200 flex justify-between items-center">
+                <span class="text-xs text-stone-600 font-semibold">Selesaikan kedua soal untuk menyalakan Obor Candi!</span>
+                <button id="btnModalDone" class="btn-game bg-amber-600 hover:bg-amber-500 text-white font-game font-bold px-5 py-2 rounded-xl text-sm">
+                    Kembali ke Dunia
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Kitab Rumus Kalor (Physics Reference Sheet Modal) -->
+    <div id="formulaModal" class="fixed inset-0 bg-black/75 backdrop-blur-sm z-40 hidden items-center justify-center p-4">
+        <div class="bg-amber-50 border-4 border-orange-700 rounded-3xl max-w-3xl w-full overflow-hidden shadow-2xl flex flex-col max-h-[88vh]">
+            <div class="bg-gradient-to-r from-orange-800 to-amber-900 p-4 sm:p-5 text-amber-50 flex items-center justify-between">
+                <div class="flex items-center gap-3">
+                    <i class="fa-solid fa-scroll text-2xl text-amber-300"></i>
+                    <div>
+                        <h2 class="font-game font-bold text-xl sm:text-2xl">Kitab Sakti: Rangkuman Materi Suhu & Kalor</h2>
+                        <p class="text-xs text-amber-200">Panduan menyelesaikan 6 Tantangan Candi Nusantara</p>
+                    </div>
+                </div>
+                <button id="closeFormulaModal" class="w-9 h-9 rounded-xl bg-amber-950/60 hover:bg-amber-950 text-amber-200 flex items-center justify-center">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+            </div>
+
+            <div class="p-4 sm:p-6 overflow-y-auto grid grid-cols-1 md:grid-cols-2 gap-4 text-xs sm:text-sm text-stone-800">
+                <div class="bg-white p-4 rounded-2xl border-2 border-amber-200 shadow-sm space-y-1.5">
+                    <span class="text-xs font-bold bg-sky-100 text-sky-800 px-2.5 py-0.5 rounded-full">1. Candi Arjuna Dieng</span>
+                    <h3 class="font-game font-bold text-base text-amber-950">Konversi Temperatur (Suhu)</h3>
+                    <p class="text-xs text-stone-600">Perbandingan skala: <strong>C : R : (F - 32) : (K - 273) = 5 : 4 : 9 : 5</strong></p>
+                    <div class="bg-stone-100 p-2 rounded-lg font-mono text-xs text-stone-800 space-y-1">
+                        <div>• T(°R) = 4/5 × T(°C)</div>
+                        <div>• T(°F) = (9/5 × T(°C)) + 32</div>
+                        <div>• T(K)  = T(°C) + 273</div>
+                    </div>
+                </div>
+
+                <div class="bg-white p-4 rounded-2xl border-2 border-amber-200 shadow-sm space-y-1.5">
+                    <span class="text-xs font-bold bg-amber-100 text-amber-800 px-2.5 py-0.5 rounded-full">2. Candi Borobudur</span>
+                    <h3 class="font-game font-bold text-base text-amber-950">Kalor Jenis & Kapasitas Kalor</h3>
+                    <p class="text-xs text-stone-600">Banyaknya kalor yang diserap/dilepas batu candi untuk mengubah suhunya:</p>
+                    <div class="bg-stone-100 p-2 rounded-lg font-mono text-xs text-stone-800 space-y-1">
+                        <div>• <strong>Q = m · c · ΔT</strong></div>
+                        <div>• <strong>C = m · c</strong> (Kapasitas Kalor)</div>
+                        <div class="text-[11px] text-stone-500">m = massa (kg), c = kalor jenis (J/kg°C), ΔT = perubahan suhu</div>
+                    </div>
+                </div>
+
+                <div class="bg-white p-4 rounded-2xl border-2 border-amber-200 shadow-sm space-y-1.5">
+                    <span class="text-xs font-bold bg-emerald-100 text-emerald-800 px-2.5 py-0.5 rounded-full">3. Candi Gunung Kawi Bali</span>
+                    <h3 class="font-game font-bold text-base text-amber-950">Asas Black (Kesetimbangan Termal)</h3>
+                    <p class="text-xs text-stone-600">Saat air panas dan air dingin dicampur di kolam tirta, kalor yang dilepas sama dengan kalor yang diterima:</p>
+                    <div class="bg-stone-100 p-2 rounded-lg font-mono text-xs text-stone-800 space-y-1">
+                        <div>• <strong>Q_lepas = Q_terima</strong></div>
+                        <div>• m₁·c₁·(T₁ - T_c) = m₂·c₂·(T_c - T₂)</div>
+                        <div class="text-[11px] text-stone-500">T₁ = suhu tinggi, T₂ = suhu rendah, T_c = suhu akhir campuran</div>
+                    </div>
+                </div>
+
+                <div class="bg-white p-4 rounded-2xl border-2 border-amber-200 shadow-sm space-y-1.5">
+                    <span class="text-xs font-bold bg-red-100 text-red-800 px-2.5 py-0.5 rounded-full">4. Candi Muara Takus</span>
+                    <h3 class="font-game font-bold text-base text-amber-950">Perpindahan Kalor: Konduksi</h3>
+                    <p class="text-xs text-stone-600">Rambatan kalor melalui zat padat (batu bata/logam) tanpa disertai perpindahan partikelnya:</p>
+                    <div class="bg-stone-100 p-2 rounded-lg font-mono text-xs text-stone-800 space-y-1">
+                        <div>• <strong>H = Q/t = (k · A · ΔT) / L</strong></div>
+                        <div class="text-[11px] text-stone-500">k = konduktivitas termal, A = luas penampang, L = tebal dinding</div>
+                    </div>
+                </div>
+
+                <div class="bg-white p-4 rounded-2xl border-2 border-amber-200 shadow-sm space-y-1.5">
+                    <span class="text-xs font-bold bg-purple-100 text-purple-800 px-2.5 py-0.5 rounded-full">5. Candi Penataran Blitar</span>
+                    <h3 class="font-game font-bold text-base text-amber-950">Perpindahan Kalor: Konveksi</h3>
+                    <p class="text-xs text-stone-600">Aliran kalor melalui fluida (udara/air) yang disertai gerak partikel akibat perbedaan massa jenis:</p>
+                    <div class="bg-stone-100 p-2 rounded-lg font-mono text-xs text-stone-800 space-y-1">
+                        <div>• <strong>H = Q/t = h · A · ΔT</strong></div>
+                        <div class="text-[11px] text-stone-500">h = koefisien konveksi (W/m²K), A = luas permukaan kontak</div>
+                    </div>
+                </div>
+
+                <div class="bg-white p-4 rounded-2xl border-2 border-amber-200 shadow-sm space-y-1.5">
+                    <span class="text-xs font-bold bg-yellow-100 text-yellow-800 px-2.5 py-0.5 rounded-full">6. Candi Prambanan</span>
+                    <h3 class="font-game font-bold text-base text-amber-950">Perpindahan Kalor: Radiasi</h3>
+                    <p class="text-xs text-stone-600">Pancaran gelombang elektromagnetik tanpa memerlukan medium (Hukum Stefan-Boltzmann):</p>
+                    <div class="bg-stone-100 p-2 rounded-lg font-mono text-xs text-stone-800 space-y-1">
+                        <div>• <strong>P = Q/t = e · σ · A · T⁴</strong></div>
+                        <div class="text-[11px] text-stone-500">e = emisivitas (hitam legam e≈1), T = suhu mutlak (Kelvin)</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Journal / Encyclopedia & Fast Travel Modal -->
+    <div id="journalModal" class="fixed inset-0 bg-black/75 backdrop-blur-sm z-40 hidden items-center justify-center p-4">
+        <div class="bg-amber-50 border-4 border-amber-800 rounded-3xl max-w-4xl w-full overflow-hidden shadow-2xl flex flex-col max-h-[88vh]">
+            <div class="bg-amber-900 p-4 sm:p-5 text-amber-50 flex items-center justify-between">
+                <div class="flex items-center gap-3">
+                    <i class="fa-solid fa-compass-drafting text-2xl text-amber-400"></i>
+                    <div>
+                        <h2 class="font-game font-bold text-xl sm:text-2xl">Peta Cepat & Daftar Misi Kalor Candi</h2>
+                        <p class="text-xs text-amber-200">Pilih candi berdasarkan materi Kalor yang ingin kamu latih sekarang!</p>
+                    </div>
+                </div>
+                <button id="closeJournalModal" class="w-9 h-9 rounded-xl bg-amber-950/60 hover:bg-amber-950 text-amber-200 flex items-center justify-center">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+            </div>
+
+            <div class="p-4 sm:p-6 overflow-y-auto grid grid-cols-1 md:grid-cols-2 gap-4" id="journalGrid">
+                <!-- Populated dynamically -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Welcome Intro Modal -->
+    <div id="welcomeModal" class="fixed inset-0 bg-black/80 backdrop-blur-md z-50 flex items-center justify-center p-4">
+        <div class="bg-gradient-to-b from-amber-50 to-orange-50 border-4 border-amber-600 rounded-3xl max-w-lg w-full p-6 text-center shadow-2xl space-y-4">
+            <div class="w-20 h-20 mx-auto rounded-3xl bg-gradient-to-br from-orange-500 to-red-600 flex items-center justify-center text-4xl shadow-lg border-2 border-amber-300 animate-float">
+                🔥
+            </div>
+            <div>
+                <span class="text-xs font-bold uppercase tracking-widest text-orange-800 bg-orange-200 px-3 py-1 rounded-full">Edutainment Fisika × Sejarah Nusantara</span>
+                <h1 class="font-game font-bold text-2xl sm:text-3xl text-amber-950 mt-2">Petualang Candi: Misi Kalor</h1>
+                <p class="text-xs sm:text-sm text-stone-600 mt-1.5 leading-relaxed">
+                    Jelajahi 6 Candi Nusantara dan pecahkan teka-teki fisika <strong>Suhu & Kalor</strong> untuk menyalakan Api Suci di setiap pelataran candi!
+                </p>
+            </div>
+
+            <div class="grid grid-cols-2 gap-2 text-left text-[11px] sm:text-xs bg-white p-3.5 rounded-2xl border border-amber-200 text-stone-700">
+                <div class="flex items-center gap-2"><span class="text-base">🌡️</span> <span><strong>Candi Dieng:</strong> Konversi Suhu</span></div>
+                <div class="flex items-center gap-2"><span class="text-base">🪨</span> <span><strong>Borobudur:</strong> Kalor Jenis</span></div>
+                <div class="flex items-center gap-2"><span class="text-base">⚖️</span> <span><strong>Gunung Kawi:</strong> Asas Black</span></div>
+                <div class="flex items-center gap-2"><span class="text-base">🧱</span> <span><strong>Muara Takus:</strong> Konduksi</span></div>
+                <div class="flex items-center gap-2"><span class="text-base">🌬️</span> <span><strong>Penataran:</strong> Konveksi</span></div>
+                <div class="flex items-center gap-2"><span class="text-base">☀️</span> <span><strong>Prambanan:</strong> Radiasi</span></div>
+            </div>
+
+            <button id="btnStartGame" class="btn-game w-full bg-gradient-to-r from-orange-600 to-amber-600 hover:from-orange-500 hover:to-amber-500 text-white font-game font-bold py-3.5 rounded-2xl text-lg tracking-wide border border-amber-300">
+                Mulai Eksplorasi & Eksperimen!
+            </button>
+        </div>
+    </div>
+
+    <script>
+        /**
+         * PETUALANG CANDI NUSANTARA - EDISI TANTANGAN FISIKA KALOR
+         * 6 Candi = 6 Topik Utama Materi Suhu & Kalor:
+         * 1. Kompleks Candi Arjuna Dieng -> Konversi Temperatur (C, R, F, K)
+         * 2. Candi Borobudur             -> Kalor Jenis & Kapasitas Kalor (Q = m.c.ΔT)
+         * 3. Candi Gunung Kawi Bali      -> Asas Black (Q_lepas = Q_terima)
+         * 4. Candi Muara Takus           -> Konduksi Termal (H = k.A.ΔT / L)
+         * 5. Candi Penataran Blitar      -> Konveksi Termal (H = h.A.ΔT & Angin Gunung/Lembah)
+         * 6. Candi Prambanan             -> Radiasi Benda Hitam (P = e.σ.A.T⁴)
+         */
+
+        const WORLD_WIDTH = 3200;
+        const WORLD_HEIGHT = 2400;
+        let playerXP = 0;
+
+        const CANDI_DATA = [
+            {
+                id: 'dieng',
+                name: 'Kompleks Candi Arjuna',
+                region: 'Dataran Tinggi Dieng, Jawa Tengah',
+                topic: 'Konversi Temperatur',
+                topicBadgeColor: 'bg-sky-600',
+                x: 1420,
+                y: 560,
+                radius: 125,
+                discovered: false,
+                style: 'dieng',
+                description: 'Di Dataran Tinggi Dieng (>2.000 mdpl), suhu udara pagi hari bisa turun sangat dingin mendekati titik beku (fenomena bun upas), sedangkan kawah vulkanik di dekatnya bersuhu tinggi. Para peneliti candi harus mengonversi suhu antara skala Celcius (°C), Reamur (°R), Fahrenheit (°F), dan Kelvin (K).',
+                formulaDesc: 'Perbandingan skala termometer: C : R : (F-32) : (K-273) = 5 : 4 : 9 : 5',
+                formulaMath: 'T(F) = (9/5)C + 32 | K = C + 273',
+                currentStage: 0,
+                challenges: [
+                    {
+                        solved: false,
+                        question: 'Saat pagi hari di pelataran Candi Arjuna Dieng, termometer Celcius menunjukkan suhu udara dingin 15°C. Berapakah suhu tersebut jika diukur dengan termometer Fahrenheit (°F) dan Kelvin (K)?',
+                        options: [
+                            '59°F dan 288 K',
+                            '27°F dan 258 K',
+                            '45°F dan 288 K',
+                            '59°F dan 273 K'
+                        ],
+                        correct: 0,
+                        hint: 'Gunakan rumus: T(°F) = (9/5 × 15) + 32, dan T(K) = 15 + 273.',
+                        explanation: 'Benar! T(°F) = (9/5 × 15) + 32 = 27 + 32 = 59°F. Sedangkan dalam satuan SI Kelvin: T(K) = 15 + 273 = 288 K.'
+                    },
+                    {
+                        solved: false,
+                        question: 'Sumber mata air panas alami di dekat kawah Dieng diukur menggunakan termometer Reamur dan menunjukkan angka 60°R. Berapakah suhu mata air tersebut dalam skala Celcius (°C) dan Fahrenheit (°F)?',
+                        options: [
+                            '48°C dan 118°F',
+                            '75°C dan 167°F',
+                            '75°C dan 135°F',
+                            '80°C dan 176°F'
+                        ],
+                        correct: 1,
+                        hint: 'Cari Celcius dulu: C = (5/4) × R = (5/4) × 60. Lalu ubah ke Fahrenheit: F = (9/5 × C) + 32.',
+                        explanation: 'Tepat sekali! T(°C) = 5/4 × 60°R = 75°C. Kemudian T(°F) = (9/5 × 75) + 32 = 135 + 32 = 167°F.'
+                    }
+                ]
+            },
+            {
+                id: 'borobudur',
+                name: 'Candi Borobudur',
+                region: 'Magelang, Jawa Tengah',
+                topic: 'Kalor Jenis (c)',
+                topicBadgeColor: 'bg-amber-600',
+                x: 1350,
+                y: 1250,
+                radius: 135,
+                discovered: false,
+                style: 'borobudur',
+                description: 'Candi Borobudur tersusun atas jutaan balok batu andesit vulkanik. Saat disinari terik matahari dari pagi hingga siang, suhu batu andesit meningkat. Banyaknya energi panas (kalor) yang diserap batu bergantung pada massa batu (m), kalor jenis batu andesit (c), dan kenaikan suhunya (ΔT).',
+                formulaDesc: 'Kalor yang diperlukan untuk menaikkan suhu benda bermassa m sebesar ΔT:',
+                formulaMath: 'Q = m · c · ΔT',
+                currentStage: 0,
+                challenges: [
+                    {
+                        solved: false,
+                        question: 'Sebuah balok batu andesit di stupa Candi Borobudur memiliki massa 4 kg dan kalor jenis c = 850 J/(kg·°C). Jika sinar matahari pagi menaikkan suhu batu dari 20°C menjadi 35°C, berapa besar kalor (Q) yang diserap batu tersebut?',
+                        options: [
+                            '34.000 Joule (34 kJ)',
+                            '51.000 Joule (51 kJ)',
+                            '68.000 Joule (68 kJ)',
+                            '17.000 Joule (17 kJ)'
+                        ],
+                        correct: 1,
+                        hint: 'Hitung ΔT = 35°C - 20°C = 15°C. Lalu kalikan Q = m × c × ΔT = 4 × 850 × 15.',
+                        explanation: 'Luar biasa! ΔT = 35 - 20 = 15°C. Maka Q = 4 kg × 850 J/(kg·°C) × 15°C = 51.000 Joule atau 51 kJ.'
+                    },
+                    {
+                        solved: false,
+                        question: 'Di pelataran candi terdapat air hujan di dalam tempayan batu (c_air = 4.200 J/kg°C) dan balok batu andesit (c_batu = 850 J/kg°C) dengan massa yang sama. Mengapa pada siang hari batu candi terasa jauh lebih cepat panas dibandingkan air?',
+                        options: [
+                            'Karena kalor jenis batu lebih kecil, sehingga butuh lebih sedikit kalor untuk menaikkan suhunya tiap 1°C',
+                            'Karena kalor jenis batu lebih besar sehingga menyimpan dingin',
+                            'Karena air tidak dapat menyerap kalor dari matahari',
+                            'Karena massa jenis air lebih besar daripada batu andesit'
+                        ],
+                        correct: 0,
+                        hint: 'Perhatikan hubungan ΔT = Q / (m · c). Jika nilai c kecil, bagaimana nilai ΔT?',
+                        explanation: 'Benar! Zat dengan kalor jenis (c) lebih kecil (batu = 850 vs air = 4.200) memerlukan energi kalor yang jauh lebih sedikit untuk menaikkan suhunya sebesar 1°C, sehingga batu lebih cepat panas di siang hari dan lebih cepat dingin di malam hari.'
+                    }
+                ]
+            },
+            {
+                id: 'gunungkawi',
+                name: 'Candi Gunung Kawi',
+                region: 'Tampaksiring, Bali',
+                topic: 'Asas Black',
+                topicBadgeColor: 'bg-emerald-600',
+                x: 2620,
+                y: 1850,
+                radius: 125,
+                discovered: false,
+                style: 'gunungkawi',
+                description: 'Candi Gunung Kawi di Bali terkenal dengan pancuran air suci (Tirta Empul) di tepi Sungai Pakerisan. Ketika air hangat dari sumber vulkanik dicampurkan dengan air sungai pegunungan yang sejuk di dalam kolam batu terisolasi, terjadi pertukaran kalor hingga tercapai suhu setimbang (Asas Black).',
+                formulaDesc: 'Kalor yang dilepas benda bersuhu tinggi sama dengan kalor yang diterima benda bersuhu rendah:',
+                formulaMath: 'Q_lepas = Q_terima',
+                currentStage: 0,
+                challenges: [
+                    {
+                        solved: false,
+                        question: 'Di kolam pemandian Candi Gunung Kawi, 2 kg air hangat bersuhu 80°C dicampur dengan 3 kg air pegunungan yang sejuk bersuhu 20°C. Karena keduanya sama-sama air (c sama), berapakah suhu akhir campuran (Tc) saat mencapai kesetimbangan termal?',
+                        options: [
+                            '40°C',
+                            '44°C',
+                            '50°C',
+                            '56°C'
+                        ],
+                        correct: 1,
+                        hint: 'Gunakan m₁(80 - Tc) = m₂(Tc - 20) -> 2(80 - Tc) = 3(Tc - 20).',
+                        explanation: 'Tepat! 2 × (80 - Tc) = 3 × (Tc - 20) → 160 - 2Tc = 3Tc - 60 → 5Tc = 220 → Tc = 44°C.'
+                    },
+                    {
+                        solved: false,
+                        question: 'Seorang pande logam kuno mencelupkan keris besi panas bermassa 0,5 kg (suhu 220°C, c_besi = 420 J/kg°C) ke dalam 1 kg air bersuhu 20°C (c_air = 4.200 J/kg°C). Berapakah suhu akhir kesetimbangan antara keris dan air?',
+                        options: [
+                            '25,5°C',
+                            '29,5°C',
+                            '40,0°C',
+                            '120,0°C'
+                        ],
+                        correct: 1,
+                        hint: 'm_besi · c_besi · (220 - Tc) = m_air · c_air · (Tc - 20) → 0,5 × 420 × (220 - Tc) = 1 × 4200 × (Tc - 20).',
+                        explanation: 'Cerdas! 210(220 - Tc) = 4200(Tc - 20). Bagi kedua ruas dengan 210: (220 - Tc) = 20(Tc - 20) → 220 - Tc = 20Tc - 400 → 21Tc = 620 → Tc ≈ 29,5°C.'
+                    }
+                ]
+            },
+            {
+                id: 'muarathakus',
+                name: 'Candi Muara Takus',
+                region: 'Kampar, Riau (Sumatera)',
+                topic: 'Konduksi Kalor',
+                topicBadgeColor: 'bg-red-600',
+                x: 580,
+                y: 640,
+                radius: 120,
+                discovered: false,
+                style: 'muarathakus',
+                description: 'Candi Muara Takus dibangun dari batu bata merah tebal. Saat bagian luar dinding bata terpapar panas matahari khatulistiwa Sumatera, kalor merambat menembus ketebalan batu bata menuju ruang dalam candi secara Konduksi (tanpa perpindahan partikel bata).',
+                formulaDesc: 'Laju hantaran kalor konduksi (H) sebanding dengan luas (A) & ΔT, dan berbanding terbalik dengan tebal (L):',
+                formulaMath: 'H = (k · A · ΔT) / L',
+                currentStage: 0,
+                challenges: [
+                    {
+                        solved: false,
+                        question: 'Sebuah dinding bata merah Candi Muara Takus memiliki luas A = 2 m², tebal L = 0,2 m, dan konduktivitas termal bata k = 0,6 W/(m·K). Jika suhu permukaan luar 45°C dan permukaan dalam 25°C, berapakah laju konduksi kalor (H) yang menembus dinding?',
+                        options: [
+                            '60 Watt (Joule/detik)',
+                            '120 Watt (Joule/detik)',
+                            '240 Watt (Joule/detik)',
+                            '24 Watt (Joule/detik)'
+                        ],
+                        correct: 1,
+                        hint: 'ΔT = 45 - 25 = 20 K. Masukkan ke H = (0,6 × 2 × 20) / 0,2.',
+                        explanation: 'Sangat tepat! H = (k · A · ΔT) / L = (0,6 × 2 × 20) / 0,2 = 24 / 0,2 = 120 Watt (120 Joule/detik).'
+                    },
+                    {
+                        solved: false,
+                        question: 'Mengapa arsitek kuno membangun dinding candi dengan batu yang tebal (memperbesar nilai L) dan memilih bahan batu/bata yang memiliki konduktivitas termal (k) rendah?',
+                        options: [
+                            'Agar laju konduksi kalor (H) dari luar menjadi kecil, sehingga bagian dalam candi tetap sejuk di siang hari',
+                            'Agar kalor dari matahari luar merambat secepat mungkin ke dalam ruangan candi',
+                            'Agar suhu di dalam candi selalu dua kali lipat suhu di luar candi',
+                            'Karena ketebalan dinding tidak memengaruhi laju rambatan kalor konduksi'
+                        ],
+                        correct: 0,
+                        hint: 'Lihat posisi L (penyebut) dan k (pembilang) pada rumus H = (k · A · ΔT) / L.',
+                        explanation: 'Benar! Karena L berada sebagai penyebut dan k sebagai pembilang, dinding yang tebal (L besar) dan isolator (k kecil) akan memperkecil laju aliran panas H, menjaga ruangan dalam candi tetap teduh.'
+                    }
+                ]
+            },
+            {
+                id: 'penataran',
+                name: 'Candi Penataran',
+                region: 'Blitar, Jawa Timur',
+                topic: 'Konveksi Kalor',
+                topicBadgeColor: 'bg-purple-600',
+                x: 2450,
+                y: 1120,
+                radius: 125,
+                discovered: false,
+                style: 'penataran',
+                description: 'Terletak di lereng Gunung Kelud, pelataran Candi Penataran selalu dialiri hembusan angin lembah dan angin gunung yang sejuk, serta kepulan asap pedupaan yang membumbung ke atas. Perpindahan kalor yang disertai gerak aliran partikel udara atau air ini disebut Konveksi.',
+                formulaDesc: 'Laju perpindahan kalor secara konveksi antara permukaan benda dan fluida (udara/air):',
+                formulaMath: 'H = h · A · ΔT',
+                currentStage: 0,
+                challenges: [
+                    {
+                        solved: false,
+                        question: 'Sebuah arca Dwarapala di Candi Penataran memiliki luas permukaan efektif 1,5 m² dan bersuhu 42°C setelah terpapar matahari. Angin sejuk lereng Gunung Kelud bersuhu 22°C bertiup melewati arca dengan koefisien konveksi h = 15 W/(m²·K). Berapa laju kalor yang dilepas arca ke udara secara konveksi?',
+                        options: [
+                            '225 Watt',
+                            '300 Watt',
+                            '450 Watt',
+                            '630 Watt'
+                        ],
+                        correct: 2,
+                        hint: 'ΔT = 42 - 22 = 20 K. Kalikan H = h × A × ΔT = 15 × 1,5 × 20.',
+                        explanation: 'Tepat sekali! ΔT = 42 - 22 = 20 K. Maka laju konveksi H = 15 × 1,5 × 20 = 450 Watt.'
+                    },
+                    {
+                        solved: false,
+                        question: 'Saat obor dan pedupaan dinyalakan di pelataran Candi Penataran, udara panas dan asap selalu bergerak naik ke atas. Apa penyebab fisis terjadinya aliran konveksi alami tersebut?',
+                        options: [
+                            'Udara yang dipanaskan memuai sehingga massa jenisnya (ρ) mengecil dan terdorong naik oleh udara dingin yang lebih rapat',
+                            'Udara panas memiliki massa jenis yang lebih berat sehingga ditarik oleh awan',
+                            'Kalor merambat tanpa disertai perpindahan molekul udara sama sekali',
+                            'Gaya gravitasi bumi berhenti bekerja pada gas yang bersuhu tinggi'
+                        ],
+                        correct: 0,
+                        hint: 'Ingat hubungan suhu, pemuaian volume, dan massa jenis (ρ = m/V) pada fluida.',
+                        explanation: 'Benar! Saat udara dipanaskan, volumenya memuai sehingga massa jenisnya (ρ) berkurang. Akibatnya udara panas yang lebih ringan bergerak naik dan digantikan oleh udara dingin di sekitarnya.'
+                    }
+                ]
+            },
+            {
+                id: 'prambanan',
+                name: 'Candi Prambanan',
+                region: 'Sleman & Klaten, DIY - Jawa Tengah',
+                topic: 'Radiasi Kalor',
+                topicBadgeColor: 'bg-orange-600',
+                x: 1920,
+                y: 1320,
+                radius: 130,
+                discovered: false,
+                style: 'prambanan',
+                description: 'Menara Candi Siwa di Prambanan menjulang setinggi 47 meter di bawah langit terbuka. Panas matahari sampai ke batu candi melewati ruang hampa udara melalui gelombang elektromagnetik (Radiasi). Batu andesit yang berwarna gelap juga memancarkan dan menyerap radiasi termal sesuai Hukum Stefan-Boltzmann.',
+                formulaDesc: 'Daya radiasi kalor sebanding dengan emisivitas (e), luas (A), dan pangkat empat suhu mutlak (T⁴):',
+                formulaMath: 'P = e · σ · A · T⁴',
+                currentStage: 0,
+                challenges: [
+                    {
+                        solved: false,
+                        question: 'Menurut Hukum Stefan-Boltzmann (P = e·σ·A·T⁴), jika suhu mutlak (dalam Kelvin) sebuah obor perunggu di Candi Prambanan dinaikkan menjadi 2 kali lipat suhu semula (2T), maka laju energi radiasi kalor yang dipancarkannya akan menjadi...',
+                        options: [
+                            '2 kali semula',
+                            '4 kali semula',
+                            '8 kali semula',
+                            '16 kali semula'
+                        ],
+                        correct: 3,
+                        hint: 'Karena P sebanding dengan T pangkat 4 (T⁴), hitunglah (2)⁴!',
+                        explanation: 'Brilian! Karena daya radiasi P berbanding lurus dengan T⁴, jika suhu mutlak menjadi 2T maka P_baru = (2)⁴ × P_awal = 16 kali lipat semula!'
+                    },
+                    {
+                        solved: false,
+                        question: 'Di kompleks Candi Prambanan terdapat batu andesit hitam legam (emisivitas e ≈ 0,9) dan batu kapur putih terang (emisivitas e ≈ 0,2). Di bawah terik matahari siang yang sama, pernyataan manakah yang benar mengenai sifat radiasi keduanya?',
+                        options: [
+                            'Batu hitam legam menyerap dan memancarkan radiasi kalor jauh lebih baik daripada batu putih mengilap',
+                            'Batu putih terang menyerap radiasi matahari lebih banyak daripada batu hitam',
+                            'Warna dan emisivitas permukaan benda tidak memengaruhi penyerapan radiasi kalor',
+                            'Radiasi matahari memerlukan angin sebagai medium untuk sampai ke batu candi'
+                        ],
+                        correct: 0,
+                        hint: 'Benda hitam sempurna memiliki e = 1 (penyerap dan pemancar radiasi terbaik), sedangkan pemantul putih memiliki e mendekati 0.',
+                        explanation: 'Sangat tepat! Permukaan gelap/hitam memiliki nilai emisivitas (e) mendekati 1, sehingga merupakan penyerap sekaligus pemancar kalor radiasi yang paling efektif.'
+                    }
+                ]
+            }
+        ];
+
+        // Ancient Relics with quick Kalor Trivia bonus XP
+        const RELICS = [
+            { id: 1, name: 'Termometer Galileo Kuno', fact: 'Titik tetap bawah Celcius adalah 0°C (es melebur) dan titik atas 100°C.', x: 950, y: 1050, collected: false, icon: '🌡️' },
+            { id: 2, name: 'Kalorimeter Perunggu', fact: 'Alat terisolasi untuk mengukur kalor jenis zat berdasarkan Asas Black.', x: 1650, y: 1280, collected: false, icon: '⚱️' },
+            { id: 3, name: 'Lempeng Tembaga Konduktor', fact: 'Logam memiliki konduktivitas termal (k) tinggi karena elektron bebas.', x: 2150, y: 980, collected: false, icon: '🪙' },
+            { id: 4, name: 'Keris Besi Tempa', fact: 'Disepuh dengan mencelupkan besi membara ke air (aplikasi Asas Black).', x: 2350, y: 1480, collected: false, icon: '🗡️' },
+            { id: 5, name: 'Stupa Andesit Berpori', fact: 'Batu vulkanik memiliki kalor jenis ~850 J/kg°C.', x: 1120, y: 1550, collected: false, icon: '🔔' },
+            { id: 6, name: 'Surya Majapahit Emas', fact: 'Sinar matahari merambat 150 juta km ke Bumi secara Radiasi.', x: 2680, y: 900, collected: false, icon: '☀️' },
+            { id: 7, name: 'Kendi Tanah Liat Sriwijaya', fact: 'Pori-pori kendi menjaga air di dalamnya tetap dingin secara alami.', x: 420, y: 880, collected: false, icon: '🏺' },
+            { id: 8, name: 'Kristal Kuarsa Dieng', fact: 'Suhu nol mutlak adalah 0 Kelvin atau -273,15°C.', x: 820, y: 490, collected: false, icon: '💎' },
+            { id: 9, name: 'Obor Minyak Damar', fact: 'Udara panas di atas api obor naik karena Konveksi.', x: 1780, y: 650, collected: false, icon: '🔥' },
+            { id: 10, name: 'Lontar Hukum Termodinamika', fact: 'Kalor mengalir secara alami dari benda bersuhu tinggi ke suhu rendah.', x: 1240, y: 880, collected: false, icon: '📜' },
+            { id: 11, name: 'Cermin Cekung Pemantul', fact: 'Permukaan mengilap memiliki emisivitas (e) mendekati 0.', x: 2150, y: 1750, collected: false, icon: '🪞' },
+            { id: 12, name: 'Mahkota Raja Warmadewa', fact: 'Emas adalah konduktor panas yang sangat baik (k ≈ 314 W/m·K).', x: 2850, y: 1580, collected: false, icon: '👑' }
+        ];
+
+        const MOUNTAINS = [
+            { name: 'Gunung Merapi', x: 1680, y: 920, radius: 170, hasSmoke: true },
+            { name: 'Dataran Tinggi Dieng', x: 1180, y: 380, radius: 160, hasSmoke: false },
+            { name: 'Gunung Kelud', x: 2720, y: 620, radius: 165, hasSmoke: true },
+            { name: 'Pegunungan Bukit Barisan', x: 350, y: 360, radius: 180, hasSmoke: false },
+            { name: 'Gunung Agung Bali', x: 2920, y: 1420, radius: 155, hasSmoke: true }
+        ];
+
+        const RICE_PADDIES = [
+            { x: 1050, y: 1180, w: 180, h: 120 },
+            { x: 1550, y: 1450, w: 220, h: 130 },
+            { x: 2120, y: 1180, w: 190, h: 110 },
+            { x: 2380, y: 1680, w: 200, h: 140 },
+            { x: 680, y: 820, w: 170, h: 110 }
+        ];
+
+        const player = {
+            x: 1350,
+            y: 1480,
+            radius: 18,
+            baseSpeed: 240,
+            sprintMultiplier: 1.65,
+            sprinting: false,
+            vx: 0,
+            vy: 0,
+            facing: 'down',
+            targetX: null,
+            targetY: null
+        };
+
+        const camera = { x: player.x, y: player.y };
+
+        let timeOfDay = 0;
+        const TIME_MODES = [
+            { name: 'Siang Hari (Radiasi Terik)', icon: 'fa-sun text-amber-300', overlay: 'rgba(0,0,0,0)' },
+            { name: 'Senja Nusantara', icon: 'fa-cloud-sun text-orange-300', overlay: 'rgba(180, 65, 15, 0.22)' },
+            { name: 'Malam Purnama', icon: 'fa-moon text-indigo-200', overlay: 'rgba(10, 18, 45, 0.55)' }
+        ];
+
+        const keys = { up: false, down: false, left: false, right: false, sprint: false };
+
+        const trees = [];
+        const flowers = [];
+        const clouds = [];
+        const fireflies = [];
+        let activeNearbyCandi = null;
+
+        let soundEnabled = true;
+        let synth = null;
+
+        function initAudio() {
+            if (synth) return;
+            try {
+                synth = new Tone.PolySynth(Tone.Synth, {
+                    oscillator: { type: 'sine' },
+                    envelope: { attack: 0.01, decay: 0.4, sustain: 0.1, release: 1.2 }
+                }).toDestination();
+                synth.volume.value = -8;
+            } catch (e) {
+                console.warn('Audio init skipped:', e);
+            }
+        }
+
+        function playGamelanChord(type) {
+            if (!soundEnabled) return;
+            initAudio();
+            if (!synth) return;
+            try {
+                if (Tone.context.state !== 'running') Tone.context.resume();
+                const now = Tone.now();
+                if (type === 'discover') {
+                    synth.triggerAttackRelease('E4', '8n', now);
+                    synth.triggerAttackRelease('F4', '8n', now + 0.12);
+                    synth.triggerAttackRelease('A4', '8n', now + 0.24);
+                    synth.triggerAttackRelease('B4', '8n', now + 0.36);
+                    synth.triggerAttackRelease('E5', '2n', now + 0.48);
+                } else if (type === 'relic') {
+                    synth.triggerAttackRelease('B4', '16n', now);
+                    synth.triggerAttackRelease('E5', '8n', now + 0.1);
+                } else if (type === 'click') {
+                    synth.triggerAttackRelease('A4', '16n', now);
+                } else if (type === 'quizSuccess') {
+                    synth.triggerAttackRelease(['E4', 'A4', 'B4', 'E5'], '4n', now);
+                }
+            } catch (err) {}
+        }
+
+        function isCandiFullySolved(candi) {
+            return candi.challenges.every(ch => ch.solved);
+        }
+
+        function generateWorldScenery() {
+            let seed = 42;
+            const rand = () => {
+                seed = (seed * 16807) % 2147483647;
+                return (seed - 1) / 2147483646;
+            };
+
+            for (let i = 0; i < 290; i++) {
+                const tx = 140 + rand() * (WORLD_WIDTH - 280);
+                const ty = 140 + rand() * (WORLD_HEIGHT - 280);
+
+                let tooClose = false;
+                for (const c of CANDI_DATA) {
+                    if (Math.hypot(tx - c.x, ty - c.y) < c.radius + 55) {
+                        tooClose = true;
+                        break;
+                    }
+                }
+                for (const m of MOUNTAINS) {
+                    if (Math.hypot(tx - m.x, ty - m.y) < m.radius - 10) {
+                        tooClose = true;
+                        break;
+                    }
+                }
+                if (!tooClose) {
+                    const treeTypes = ['palm', 'banyan', 'tropical'];
+                    trees.push({
+                        x: tx,
+                        y: ty,
+                        scale: 0.75 + rand() * 0.55,
+                        type: treeTypes[Math.floor(rand() * treeTypes.length)]
+                    });
+                }
+            }
+
+            trees.sort((a, b) => a.y - b.y);
+
+            for (let i = 0; i < 350; i++) {
+                flowers.push({
+                    x: 100 + rand() * (WORLD_WIDTH - 200),
+                    y: 100 + rand() * (WORLD_HEIGHT - 200),
+                    color: ['#f59e0b', '#ec4899', '#fef08a', '#a855f7'][Math.floor(rand() * 4)],
+                    size: 3 + rand() * 3
+                });
+            }
+
+            for (let i = 0; i < 18; i++) {
+                clouds.push({
+                    x: rand() * WORLD_WIDTH,
+                    y: rand() * WORLD_HEIGHT,
+                    speed: 12 + rand() * 18,
+                    scale: 0.8 + rand() * 0.9
+                });
+            }
+
+            for (let i = 0; i < 75; i++) {
+                fireflies.push({
+                    x: rand() * WORLD_WIDTH,
+                    y: rand() * WORLD_HEIGHT,
+                    phase: rand() * Math.PI * 2,
+                    speed: 0.5 + rand() * 1.2
+                });
+            }
+        }
+
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+
+        function drawSacredBraziers(ctx, candi, time) {
+            const fullySolved = isCandiFullySolved(candi);
+            [-68, 68].forEach(bx => {
+                // Stone Brazier Pedestal
+                ctx.fillStyle = '#44403c';
+                ctx.strokeStyle = '#1c1917';
+                ctx.lineWidth = 2;
+                ctx.fillRect(bx - 8, 22, 16, 16);
+                ctx.strokeRect(bx - 8, 22, 16, 16);
+
+                if (fullySolved) {
+                    // Animated Sacred Flame (Api Suci Kalor)
+                    const flicker = Math.sin(time * 12 + bx) * 4;
+                    ctx.fillStyle = '#f97316';
+                    ctx.beginPath();
+                    ctx.arc(bx, 16, 10, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.fillStyle = '#facc15';
+                    ctx.beginPath();
+                    ctx.moveTo(bx - 7, 18);
+                    ctx.lineTo(bx + flicker * 0.4, 2 + flicker);
+                    ctx.lineTo(bx + 7, 18);
+                    ctx.closePath();
+                    ctx.fill();
+                }
+            });
+        }
+
+        function drawCandiArchitecture(ctx, candi, time) {
+            ctx.save();
+            ctx.translate(candi.x, candi.y);
+
+            const fullySolved = isCandiFullySolved(candi);
+
+            // Sacred Stone Courtyard
+            ctx.fillStyle = '#d6d3d1';
+            ctx.strokeStyle = fullySolved ? '#10b981' : '#78716c';
+            ctx.lineWidth = 4;
+            ctx.beginPath();
+            ctx.ellipse(0, 15, candi.radius * 0.85, candi.radius * 0.58, 0, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.stroke();
+
+            // Thermal Aura Ring
+            const pulse = Math.sin(time * 3) * 6;
+            ctx.strokeStyle = fullySolved ? 'rgba(16, 185, 129, 0.65)' : 'rgba(249, 115, 22, 0.5)';
+            ctx.lineWidth = 4;
+            ctx.beginPath();
+            ctx.ellipse(0, 15, candi.radius * 0.92 + pulse, candi.radius * 0.62 + pulse * 0.6, 0, 0, Math.PI * 2);
+            ctx.stroke();
+
+            if (candi.style === 'borobudur') {
+                const tiers = [
+                    { w: 150, h: 24, y: 25, color: '#57534e' },
+                    { w: 124, h: 22, y: 5, color: '#78716c' },
+                    { w: 96, h: 20, y: -13, color: '#57534e' },
+                    { w: 68, h: 16, y: -29, color: '#78716c' }
+                ];
+                tiers.forEach(t => {
+                    ctx.fillStyle = t.color;
+                    ctx.strokeStyle = '#292524';
+                    ctx.lineWidth = 2;
+                    ctx.beginPath();
+                    ctx.roundRect(-t.w / 2, t.y, t.w, t.h, 4);
+                    ctx.fill();
+                    ctx.stroke();
+                });
+                ctx.fillStyle = '#44403c';
+                ctx.fillRect(-12, -25, 24, 74);
+                [-36, 36].forEach(sx => {
+                    ctx.fillStyle = '#78716c';
+                    ctx.beginPath();
+                    ctx.arc(sx, -29, 10, Math.PI, 0);
+                    ctx.fill();
+                    ctx.stroke();
+                });
+                ctx.fillStyle = '#57534e';
+                ctx.beginPath();
+                ctx.arc(0, -30, 22, Math.PI, 0);
+                ctx.fill();
+                ctx.stroke();
+                ctx.fillStyle = '#fbbf24';
+                ctx.beginPath();
+                ctx.moveTo(-4, -52);
+                ctx.lineTo(0, -76);
+                ctx.lineTo(4, -52);
+                ctx.closePath();
+                ctx.fill();
+                ctx.stroke();
+
+            } else if (candi.style === 'prambanan') {
+                const towers = [
+                    { x: -45, w: 34, h: 70, peak: -68 },
+                    { x: 45, w: 34, h: 70, peak: -68 },
+                    { x: 0, w: 44, h: 98, peak: -98 }
+                ];
+                towers.forEach(tw => {
+                    ctx.fillStyle = '#57534e';
+                    ctx.strokeStyle = '#292524';
+                    ctx.lineWidth = 2;
+                    ctx.fillRect(tw.x - tw.w / 2, 32 - tw.h * 0.45, tw.w, tw.h * 0.45);
+                    ctx.strokeRect(tw.x - tw.w / 2, 32 - tw.h * 0.45, tw.w, tw.h * 0.45);
+                    ctx.beginPath();
+                    ctx.moveTo(tw.x - tw.w / 2 - 3, 32 - tw.h * 0.45);
+                    ctx.lineTo(tw.x, tw.peak);
+                    ctx.lineTo(tw.x + tw.w / 2 + 3, 32 - tw.h * 0.45);
+                    ctx.closePath();
+                    ctx.fillStyle = '#44403c';
+                    ctx.fill();
+                    ctx.stroke();
+                    ctx.fillStyle = '#1c1917';
+                    ctx.fillRect(tw.x - 6, 12, 12, 20);
+                });
+
+            } else if (candi.style === 'muarathakus') {
+                ctx.fillStyle = '#9a3412';
+                ctx.strokeStyle = '#431407';
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.roundRect(-55, 10, 110, 26, 4);
+                ctx.fill();
+                ctx.stroke();
+                ctx.fillStyle = '#c2410c';
+                ctx.fillRect(-20, -52, 40, 62);
+                ctx.strokeRect(-20, -52, 40, 62);
+                ctx.fillStyle = '#ea580c';
+                ctx.beginPath();
+                ctx.arc(0, -52, 24, Math.PI, 0);
+                ctx.fill();
+                ctx.stroke();
+                ctx.fillStyle = '#facc15';
+                ctx.beginPath();
+                ctx.moveTo(-5, -76);
+                ctx.lineTo(0, -96);
+                ctx.lineTo(5, -76);
+                ctx.closePath();
+                ctx.fill();
+
+            } else if (candi.style === 'dieng') {
+                ctx.fillStyle = '#64748b';
+                ctx.strokeStyle = '#1e293b';
+                ctx.lineWidth = 2.5;
+                ctx.fillRect(-45, 10, 90, 22);
+                ctx.strokeRect(-45, 10, 90, 22);
+                ctx.fillStyle = '#475569';
+                ctx.fillRect(-32, -32, 64, 42);
+                ctx.strokeRect(-32, -32, 64, 42);
+                ctx.fillStyle = '#334155';
+                ctx.fillRect(-26, -48, 52, 16);
+                ctx.strokeRect(-26, -48, 52, 16);
+                ctx.fillRect(-16, -62, 32, 14);
+                ctx.strokeRect(-16, -62, 32, 14);
+                ctx.fillStyle = '#0f172a';
+                ctx.fillRect(-9, -12, 18, 22);
+
+            } else if (candi.style === 'penataran') {
+                ctx.fillStyle = '#57534e';
+                ctx.strokeStyle = '#1c1917';
+                ctx.lineWidth = 2;
+                ctx.fillRect(-62, 14, 124, 20);
+                ctx.strokeRect(-62, 14, 124, 20);
+                ctx.fillStyle = '#78716c';
+                ctx.fillRect(-48, -6, 96, 20);
+                ctx.strokeRect(-48, -6, 96, 20);
+                ctx.fillStyle = '#7c2d12';
+                ctx.fillRect(-32, -42, 64, 36);
+                ctx.strokeRect(-32, -42, 64, 36);
+                ctx.fillStyle = '#44403c';
+                ctx.beginPath();
+                ctx.arc(-38, 26, 9, 0, Math.PI * 2);
+                ctx.arc(38, 26, 9, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.stroke();
+
+            } else if (candi.style === 'gunungkawi') {
+                ctx.fillStyle = '#78716c';
+                ctx.strokeStyle = '#292524';
+                ctx.lineWidth = 2.5;
+                ctx.beginPath();
+                ctx.roundRect(-68, -58, 136, 86, 18);
+                ctx.fill();
+                ctx.stroke();
+                [-40, 0, 40].forEach(nx => {
+                    ctx.fillStyle = '#292524';
+                    ctx.beginPath();
+                    ctx.roundRect(nx - 15, -42, 30, 62, 8);
+                    ctx.fill();
+                    ctx.fillStyle = '#a8a29e';
+                    ctx.fillRect(nx - 10, -18, 20, 36);
+                    ctx.beginPath();
+                    ctx.moveTo(nx - 12, -18);
+                    ctx.lineTo(nx, -36);
+                    ctx.lineTo(nx + 12, -18);
+                    ctx.closePath();
+                    ctx.fill();
+                });
+            }
+
+            drawSacredBraziers(ctx, candi, time);
+
+            // Topic Tag above Candi
+            ctx.font = 'bold 11px "Plus Jakarta Sans", sans-serif';
+            const topicLabel = '🔥 ' + candi.topic.toUpperCase();
+            const topicW = ctx.measureText(topicLabel).width;
+            ctx.fillStyle = fullySolved ? '#065f46' : '#9a3412';
+            ctx.beginPath();
+            ctx.roundRect(-topicW / 2 - 10, -148, topicW + 20, 20, 6);
+            ctx.fill();
+            ctx.fillStyle = '#fde68a';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(topicLabel, 0, -138);
+
+            // Floating Candi Nameplate
+            ctx.font = 'bold 14px "Fredoka", sans-serif';
+            const solvedCount = candi.challenges.filter(ch => ch.solved).length;
+            const label = `${candi.name} (${solvedCount}/2)`;
+            const textWidth = ctx.measureText(label).width;
+            ctx.fillStyle = fullySolved ? 'rgba(6, 78, 59, 0.94)' : 'rgba(69, 26, 3, 0.92)';
+            ctx.strokeStyle = fullySolved ? '#34d399' : '#fbbf24';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.roundRect(-textWidth / 2 - 14, -122, textWidth + 28, 26, 10);
+            ctx.fill();
+            ctx.stroke();
+
+            ctx.fillStyle = '#ffffff';
+            ctx.fillText((fullySolved ? '✓ ' : '🛕 ') + label, 0, -109);
+
+            ctx.restore();
+        }
+
+        function drawWorld(time) {
+            ctx.save();
+            const camX = Math.max(canvas.width / 2, Math.min(WORLD_WIDTH - canvas.width / 2, camera.x));
+            const camY = Math.max(canvas.height / 2, Math.min(WORLD_HEIGHT - canvas.height / 2, camera.y));
+            const offsetX = canvas.width / 2 - camX;
+            const offsetY = canvas.height / 2 - camY;
+
+            ctx.translate(offsetX, offsetY);
+
+            // Ocean & Island
+            ctx.fillStyle = '#0284c7';
+            ctx.fillRect(-500, -500, WORLD_WIDTH + 1000, WORLD_HEIGHT + 1000);
+
+            ctx.fillStyle = '#fde68a';
+            ctx.beginPath();
+            ctx.roundRect(40, 40, WORLD_WIDTH - 80, WORLD_HEIGHT - 80, 90);
+            ctx.fill();
+
+            ctx.fillStyle = '#4d7c0f';
+            ctx.beginPath();
+            ctx.roundRect(85, 85, WORLD_WIDTH - 170, WORLD_HEIGHT - 170, 75);
+            ctx.fill();
+
+            // Rivers
+            ctx.save();
+            ctx.strokeStyle = '#38bdf8';
+            ctx.lineWidth = 38;
+            ctx.lineCap = 'round';
+            ctx.lineJoin = 'round';
+            ctx.beginPath();
+            ctx.moveTo(1680, 950);
+            ctx.bezierCurveTo(1550, 1300, 1750, 1750, 1600, 2315);
+            ctx.moveTo(2700, 650);
+            ctx.bezierCurveTo(2350, 950, 2200, 1450, 2250, 2315);
+            ctx.stroke();
+            ctx.strokeStyle = '#7dd3fc';
+            ctx.lineWidth = 16;
+            ctx.stroke();
+            ctx.restore();
+
+            // Rice Paddies
+            RICE_PADDIES.forEach(p => {
+                ctx.fillStyle = '#65a30d';
+                ctx.strokeStyle = '#a3e635';
+                ctx.lineWidth = 3;
+                for (let step = 3; step >= 1; step--) {
+                    const sw = p.w * (step / 3);
+                    const sh = p.h * (step / 3);
+                    ctx.beginPath();
+                    ctx.roundRect(p.x - sw / 2, p.y - sh / 2, sw, sh, 16);
+                    ctx.fill();
+                    ctx.stroke();
+                }
+            });
+
+            // Cobblestone Roads
+            ctx.save();
+            ctx.strokeStyle = '#d6d3d1';
+            ctx.lineWidth = 24;
+            ctx.lineCap = 'round';
+            ctx.lineJoin = 'round';
+            ctx.setLineDash([18, 10]);
+            ctx.beginPath();
+            ctx.moveTo(580, 640);
+            ctx.lineTo(1420, 560);
+            ctx.lineTo(1350, 1250);
+            ctx.lineTo(1920, 1320);
+            ctx.lineTo(2450, 1120);
+            ctx.lineTo(2620, 1850);
+            ctx.stroke();
+            ctx.restore();
+
+            flowers.forEach(f => {
+                ctx.fillStyle = f.color;
+                ctx.beginPath();
+                ctx.arc(f.x, f.y, f.size, 0, Math.PI * 2);
+                ctx.fill();
+            });
+
+            if (player.targetX !== null && player.targetY !== null) {
+                ctx.strokeStyle = '#fbbf24';
+                ctx.lineWidth = 3;
+                const r = 10 + Math.sin(time * 8) * 4;
+                ctx.beginPath();
+                ctx.arc(player.targetX, player.targetY, r, 0, Math.PI * 2);
+                ctx.stroke();
+            }
+
+            RELICS.forEach(relic => {
+                if (relic.collected) return;
+                const bob = Math.sin(time * 4 + relic.id) * 5;
+                ctx.save();
+                ctx.translate(relic.x, relic.y + bob);
+                ctx.fillStyle = 'rgba(34, 211, 238, 0.28)';
+                ctx.beginPath();
+                ctx.arc(0, 0, 22, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.strokeStyle = '#22d3ee';
+                ctx.lineWidth = 2;
+                ctx.stroke();
+
+                ctx.font = '22px sans-serif';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(relic.icon, 0, 0);
+                ctx.restore();
+            });
+
+            MOUNTAINS.forEach(m => {
+                ctx.save();
+                ctx.translate(m.x, m.y);
+                const grad = ctx.createRadialGradient(0, -20, 15, 0, 0, m.radius);
+                grad.addColorStop(0, '#57534e');
+                grad.addColorStop(0.55, '#3f6212');
+                grad.addColorStop(1, '#365314');
+                ctx.fillStyle = grad;
+                ctx.beginPath();
+                ctx.arc(0, 0, m.radius, 0, Math.PI * 2);
+                ctx.fill();
+
+                if (m.hasSmoke) {
+                    ctx.fillStyle = '#292524';
+                    ctx.beginPath();
+                    ctx.arc(0, -15, 28, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.fillStyle = '#ea580c';
+                    ctx.beginPath();
+                    ctx.arc(0, -15, 14 + Math.sin(time * 3) * 3, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+
+                ctx.fillStyle = 'rgba(255,255,255,0.75)';
+                ctx.font = 'bold 12px "Plus Jakarta Sans", sans-serif';
+                ctx.textAlign = 'center';
+                ctx.fillText('⛰️ ' + m.name, 0, m.radius - 18);
+                ctx.restore();
+            });
+
+            CANDI_DATA.forEach(candi => {
+                drawCandiArchitecture(ctx, candi, time);
+            });
+
+            drawFootstepsAndDust(ctx);
+            drawPlayerCharacter(ctx, time);
+
+            trees.forEach(t => {
+                ctx.save();
+                ctx.translate(t.x, t.y);
+                ctx.scale(t.scale, t.scale);
+                ctx.fillStyle = '#78350f';
+                ctx.fillRect(-5, -12, 10, 18);
+                ctx.fillStyle = 'rgba(0,0,0,0.18)';
+                ctx.beginPath();
+                ctx.ellipse(0, 6, 22, 10, 0, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.fillStyle = t.type === 'palm' ? '#15803d' : '#166534';
+                ctx.beginPath();
+                ctx.arc(0, -22, 22, 0, Math.PI * 2);
+                ctx.arc(-14, -14, 16, 0, Math.PI * 2);
+                ctx.arc(14, -14, 16, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.fillStyle = '#22c55e';
+                ctx.beginPath();
+                ctx.arc(-4, -26, 12, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.restore();
+            });
+
+            fireflies.forEach(f => {
+                const alpha = timeOfDay === 0 ? 0.3 : 0.85;
+                const glow = (Math.sin(time * 3 + f.phase) + 1) * 0.5;
+                ctx.fillStyle = `rgba(253, 224, 71, ${alpha * glow})`;
+                ctx.beginPath();
+                ctx.arc(
+                    f.x + Math.sin(time * f.speed + f.phase) * 20,
+                    f.y + Math.cos(time * f.speed + f.phase) * 20,
+                    3.5,
+                    0,
+                    Math.PI * 2
+                );
+                ctx.fill();
+            });
+
+            clouds.forEach(c => {
+                ctx.save();
+                ctx.translate(c.x, c.y);
+                ctx.scale(c.scale, c.scale);
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.35)';
+                ctx.beginPath();
+                ctx.arc(0, 0, 35, 0, Math.PI * 2);
+                ctx.arc(28, -5, 28, 0, Math.PI * 2);
+                ctx.arc(-28, 4, 25, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.restore();
+            });
+
+            ctx.restore();
+
+            if (timeOfDay !== 0) {
+                ctx.fillStyle = TIME_MODES[timeOfDay].overlay;
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+            }
+
+            drawCompassPointers();
+            drawMinimap();
+        }
+
+        // Particle trail for footsteps and running dust
+        const playerDust = [];
+
+        function updatePlayerParticles(dt, isMoving) {
+            if (isMoving && Math.random() < (player.sprinting ? 0.65 : 0.25)) {
+                playerDust.push({
+                    x: player.x + (Math.random() - 0.5) * 12,
+                    y: player.y + 18 + (Math.random() - 0.5) * 4,
+                    vx: -player.vx * 0.08 + (Math.random() - 0.5) * 10,
+                    vy: -10 - Math.random() * 12,
+                    size: (player.sprinting ? 5 : 3) + Math.random() * 3,
+                    alpha: 0.65,
+                    life: 0,
+                    maxLife: 0.45 + Math.random() * 0.25
+                });
+            }
+            for (let i = playerDust.length - 1; i >= 0; i--) {
+                const p = playerDust[i];
+                p.life += dt;
+                p.x += p.vx * dt;
+                p.y += p.vy * dt;
+                p.size += dt * 5;
+                p.alpha = 0.65 * (1 - p.life / p.maxLife);
+                if (p.life >= p.maxLife) {
+                    playerDust.splice(i, 1);
+                }
+            }
+        }
+
+        function drawFootstepsAndDust(ctx) {
+            playerDust.forEach(p => {
+                ctx.save();
+                ctx.fillStyle = `rgba(214, 211, 209, ${Math.max(0, p.alpha)})`;
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.restore();
+            });
+        }
+
+        function drawPlayerCharacter(ctx, time) {
+            ctx.save();
+            ctx.translate(player.x, player.y);
+
+            const speed = Math.hypot(player.vx, player.vy);
+            const isMoving = speed > 5;
+            const walkFreq = player.sprinting ? 15 : 9.5;
+            const walkCycle = isMoving ? time * walkFreq : 0;
+
+            // Natural walking kinematics: stride swing, vertical bob, slight body tilt
+            const stride = isMoving ? Math.sin(walkCycle) : 0;
+            const counterStride = isMoving ? Math.cos(walkCycle) : 0;
+            const bob = isMoving ? Math.abs(Math.sin(walkCycle)) * (player.sprinting ? 4.5 : 2.8) : Math.sin(time * 2.5) * 0.8;
+            const leanAngle = isMoving
+                ? (player.vx / (player.baseSpeed * player.sprintMultiplier)) * 0.14
+                : 0;
+
+            const isSide = player.facing === 'left' || player.facing === 'right';
+            const dirX = player.facing === 'left' ? -1 : player.facing === 'right' ? 1 : 0;
+
+            // Ground contact shadow (scales subtly with vertical bob)
+            const shadowScale = 1 - bob * 0.03;
+            const shadowGrad = ctx.createRadialGradient(0, 20, 2, 0, 20, 19 * shadowScale);
+            shadowGrad.addColorStop(0, 'rgba(0, 0, 0, 0.45)');
+            shadowGrad.addColorStop(0.65, 'rgba(0, 0, 0, 0.22)');
+            shadowGrad.addColorStop(1, 'rgba(0, 0, 0, 0)');
+            ctx.fillStyle = shadowGrad;
+            ctx.beginPath();
+            ctx.ellipse(0, 20, 18 * shadowScale, 8 * shadowScale, 0, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Warm lantern / torch light aura in Dusk & Night modes
+            if (timeOfDay !== 0) {
+                const auraRadius = timeOfDay === 2 ? 175 : 110;
+                const lanternGrad = ctx.createRadialGradient(dirX * 14, -6, 6, 0, 0, auraRadius);
+                lanternGrad.addColorStop(0, timeOfDay === 2 ? 'rgba(251, 191, 36, 0.42)' : 'rgba(251, 146, 60, 0.25)');
+                lanternGrad.addColorStop(0.5, timeOfDay === 2 ? 'rgba(245, 158, 11, 0.16)' : 'rgba(245, 158, 11, 0.08)');
+                lanternGrad.addColorStop(1, 'rgba(251, 191, 36, 0)');
+                ctx.fillStyle = lanternGrad;
+                ctx.beginPath();
+                ctx.arc(0, -4, auraRadius, 0, Math.PI * 2);
+                ctx.fill();
+            }
+
+            ctx.translate(0, -bob);
+            ctx.rotate(leanAngle);
+
+            // Helper to draw an articulated leg with trousers, knee shading, and hiking boot
+            const drawLeg = (hipX, legSwing) => {
+                ctx.save();
+                ctx.translate(hipX, 4);
+                const swingY = legSwing * 4.5;
+                const swingX = isSide ? legSwing * 5.5 * dirX : 0;
+
+                // Cargo pants thigh & calf
+                ctx.fillStyle = '#57534e';
+                ctx.strokeStyle = '#1c1917';
+                ctx.lineWidth = 1.6;
+                ctx.beginPath();
+                ctx.roundRect(-4.2 + swingX * 0.5, 0, 8.4, 11 + swingY * 0.5, 3.5);
+                ctx.fill();
+                ctx.stroke();
+
+                // Knee patch detail
+                ctx.fillStyle = '#44403c';
+                ctx.fillRect(-3 + swingX * 0.5, 4, 6, 3);
+
+                // Leather hiking boot
+                ctx.fillStyle = '#451a03';
+                ctx.strokeStyle = '#1c1917';
+                ctx.beginPath();
+                const bootToe = isSide ? dirX * 2.8 : 0;
+                ctx.roundRect(-4.8 + swingX + bootToe * 0.5, 9 + swingY * 0.6, 9.6 + Math.abs(bootToe), 6.2, 3);
+                ctx.fill();
+                ctx.stroke();
+
+                // Boot sole highlight
+                ctx.fillStyle = '#a8a29e';
+                ctx.fillRect(-4.5 + swingX + bootToe * 0.5, 13.5 + swingY * 0.6, 9 + Math.abs(bootToe), 1.5);
+                ctx.restore();
+            };
+
+            // Helper to draw an articulated arm with rolled sleeve, forearm skin, and optional torch/thermometer tool
+            const drawArm = (shoulderX, armSwing, holdsTorch) => {
+                ctx.save();
+                ctx.translate(shoulderX, -7);
+                const rot = isSide ? armSwing * 0.48 : armSwing * 0.25;
+                ctx.rotate(rot);
+
+                // Rolled khaki shirt sleeve
+                ctx.fillStyle = '#fef3c7';
+                ctx.strokeStyle = '#451a03';
+                ctx.lineWidth = 1.5;
+                ctx.beginPath();
+                ctx.roundRect(-3.6, -2, 7.2, 7.5, 3);
+                ctx.fill();
+                ctx.stroke();
+
+                // Forearm (warm skin tone)
+                ctx.fillStyle = '#eab688';
+                ctx.beginPath();
+                ctx.roundRect(-3, 4.5, 6, 7.5, 2.5);
+                ctx.fill();
+                ctx.stroke();
+
+                // Explorer wristwatch or leather wristband
+                ctx.fillStyle = '#78350f';
+                ctx.fillRect(-3.2, 8.5, 6.4, 2);
+
+                // Hand
+                ctx.fillStyle = '#eab688';
+                ctx.beginPath();
+                ctx.arc(0, 13, 3.3, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.stroke();
+
+                // Held Expedition Torch / Thermal Sensor Probe
+                if (holdsTorch) {
+                    ctx.save();
+                    ctx.translate(isSide ? dirX * 2 : 2, 13);
+                    ctx.rotate(isSide ? dirX * 0.35 : 0.2);
+
+                    // Wooden/brass handle
+                    ctx.fillStyle = '#78350f';
+                    ctx.strokeStyle = '#1c1917';
+                    ctx.lineWidth = 1.4;
+                    ctx.beginPath();
+                    ctx.roundRect(-2, -14, 4, 17, 1.5);
+                    ctx.fill();
+                    ctx.stroke();
+
+                    // Brass burner cup
+                    ctx.fillStyle = '#d97706';
+                    ctx.beginPath();
+                    ctx.roundRect(-3.5, -17, 7, 4, 1.5);
+                    ctx.fill();
+                    ctx.stroke();
+
+                    // Flickering flame at tip
+                    const flicker = Math.sin(time * 18) * 1.8;
+                    ctx.fillStyle = 'rgba(249, 115, 22, 0.9)';
+                    ctx.beginPath();
+                    ctx.arc(0, -20, 5.2, 0, Math.PI * 2);
+                    ctx.fill();
+
+                    ctx.fillStyle = '#fde047';
+                    ctx.beginPath();
+                    ctx.moveTo(-3.2, -18);
+                    ctx.lineTo(flicker * 0.5, -26 - Math.abs(flicker));
+                    ctx.lineTo(3.2, -18);
+                    ctx.closePath();
+                    ctx.fill();
+                    ctx.restore();
+                }
+
+                ctx.restore();
+            };
+
+            // 1. Backpack (drawn behind body when facing down/left/right)
+            const drawBackpack = () => {
+                ctx.save();
+                const packOffsetX = isSide ? -dirX * 8 : 0;
+                ctx.translate(packOffsetX, -6);
+
+                // Rolled map scroll on top of backpack
+                ctx.fillStyle = '#fde68a';
+                ctx.strokeStyle = '#451a03';
+                ctx.lineWidth = 1.5;
+                ctx.beginPath();
+                ctx.roundRect(-9, -8, 18, 5, 2.5);
+                ctx.fill();
+                ctx.stroke();
+                ctx.fillStyle = '#dc2626';
+                ctx.fillRect(-2, -8, 4, 5);
+
+                // Main canvas rucksack
+                ctx.fillStyle = '#78350f';
+                ctx.strokeStyle = '#292524';
+                ctx.lineWidth = 1.8;
+                ctx.beginPath();
+                ctx.roundRect(-11, -4, 22, 18, 5);
+                ctx.fill();
+                ctx.stroke();
+
+                // Rucksack flap & brass buckles
+                ctx.fillStyle = '#92400e';
+                ctx.beginPath();
+                ctx.roundRect(-10, -4, 20, 8, 4);
+                ctx.fill();
+                ctx.stroke();
+
+                ctx.fillStyle = '#fbbf24';
+                ctx.fillRect(-6, 2, 2.8, 5);
+                ctx.fillRect(3.2, 2, 2.8, 5);
+                ctx.restore();
+            };
+
+            if (player.facing !== 'up') {
+                drawBackpack();
+            }
+
+            // 2. Legs (ordered properly for side vs front/back view)
+            if (isSide) {
+                drawLeg(-dirX * 2, -stride);
+                drawLeg(dirX * 2, stride);
+            } else {
+                drawLeg(-5.5, stride);
+                drawLeg(5.5, -stride);
+            }
+
+            // 3. Back arm (when in side profile)
+            if (isSide) {
+                drawArm(-dirX * 3, -stride, false);
+            }
+
+            // 4. Torso: Explorer Khaki Shirt, Field Vest, Belt, and Nusantara Batik Scarf
+            ctx.save();
+            // Inner shirt
+            ctx.fillStyle = '#fef3c7';
+            ctx.strokeStyle = '#292524';
+            ctx.lineWidth = 1.8;
+            ctx.beginPath();
+            const torsoW = isSide ? 16 : 21;
+            ctx.roundRect(-torsoW / 2, -12, torsoW, 19, 6);
+            ctx.fill();
+            ctx.stroke();
+
+            // Archaeologist Field Vest (warm terracotta/olive brown)
+            ctx.fillStyle = '#b45309';
+            ctx.beginPath();
+            ctx.roundRect(-torsoW / 2, -12, torsoW, 17, 5);
+            ctx.fill();
+            ctx.stroke();
+
+            if (player.facing !== 'up') {
+                // Center shirt placket visible between vest panels
+                const centerShift = isSide ? dirX * 3 : 0;
+                ctx.fillStyle = '#fde68a';
+                ctx.fillRect(-2.5 + centerShift, -11, 5, 15);
+
+                // Vest pockets
+                if (!isSide) {
+                    ctx.fillStyle = '#78350f';
+                    ctx.fillRect(-8.5, -4, 5, 5);
+                    ctx.fillRect(3.5, -4, 5, 5);
+                    ctx.fillStyle = '#fbbf24';
+                    ctx.fillRect(-6.5, -3, 1.2, 1.5);
+                    ctx.fillRect(5.5, -3, 1.2, 1.5);
+                }
+
+                // Red-Gold Nusantara Batik Neck Scarf / Slayer
+                ctx.fillStyle = '#dc2626';
+                ctx.strokeStyle = '#451a03';
+                ctx.lineWidth = 1.3;
+                ctx.beginPath();
+                ctx.moveTo(-7 + centerShift * 0.4, -12);
+                ctx.quadraticCurveTo(centerShift, -6, 7 + centerShift * 0.4, -12);
+                ctx.lineTo(5 + centerShift * 0.4, -7);
+                ctx.quadraticCurveTo(centerShift, -3, -5 + centerShift * 0.4, -7);
+                ctx.closePath();
+                ctx.fill();
+                ctx.stroke();
+
+                // Gold batik dot motif on scarf
+                ctx.fillStyle = '#facc15';
+                ctx.beginPath();
+                ctx.arc(centerShift, -8.5, 1.2, 0, Math.PI * 2);
+                ctx.fill();
+            }
+
+            // Leather Utility Belt & Brass Buckle
+            ctx.fillStyle = '#451a03';
+            ctx.fillRect(-torsoW / 2, 3, torsoW, 3.8);
+            ctx.fillStyle = '#fbbf24';
+            ctx.fillRect((isSide ? dirX * 3 : 0) - 2.5, 2.8, 5, 4.2);
+            ctx.restore();
+
+            // If facing UP, backpack is drawn in front of the back torso
+            if (player.facing === 'up') {
+                drawBackpack();
+            }
+
+            // 5. Front Arms (with torch held in right/front hand)
+            if (isSide) {
+                drawArm(dirX * 3, stride, true);
+            } else {
+                drawArm(-11.5, -stride, false);
+                drawArm(11.5, stride, true);
+            }
+
+            // 6. Neck & Detailed Head with Facial Expressions, Hair, and Pith/Fedora Explorer Hat
+            ctx.save();
+            const headBob = counterStride * 0.6;
+            ctx.translate(0, -21 + headBob);
+
+            // Neck
+            ctx.fillStyle = '#d99b66';
+            ctx.fillRect(-3.5, 6, 7, 5);
+
+            // Ears (visible when facing front or back)
+            if (!isSide) {
+                ctx.fillStyle = '#eab688';
+                ctx.strokeStyle = '#451a03';
+                ctx.lineWidth = 1.4;
+                ctx.beginPath();
+                ctx.arc(-11.5, 0, 3, 0, Math.PI * 2);
+                ctx.arc(11.5, 0, 3, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.stroke();
+            }
+
+            // Head shape
+            ctx.fillStyle = '#f3c69f';
+            ctx.strokeStyle = '#451a03';
+            ctx.lineWidth = 1.8;
+            ctx.beginPath();
+            ctx.roundRect(-11, -10, 22, 19, 9.5);
+            ctx.fill();
+            ctx.stroke();
+
+            // Hair & Face details
+            if (player.facing === 'up') {
+                // Back of hair
+                ctx.fillStyle = '#1c1917';
+                ctx.beginPath();
+                ctx.roundRect(-11, -10, 22, 14, 8);
+                ctx.fill();
+            } else {
+                const faceShiftX = dirX * 3.5;
+
+                // Dark hair bangs under hat
+                ctx.fillStyle = '#1c1917';
+                ctx.beginPath();
+                ctx.roundRect(-10.5, -9, 21, 6, 4);
+                ctx.fill();
+
+                // Side ear when in profile
+                if (isSide) {
+                    ctx.fillStyle = '#eab688';
+                    ctx.beginPath();
+                    ctx.arc(-dirX * 5, 0.5, 3, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.stroke();
+                }
+
+                // Natural eye blink every ~4 seconds
+                const isBlinking = (time % 4.2) > 4.06;
+
+                // Left & Right Eyes
+                const eyePositions = isSide ? [faceShiftX + dirX * 2] : [-4.2 + faceShiftX, 4.2 + faceShiftX];
+                eyePositions.forEach(ex => {
+                    // Eyebrow
+                    ctx.strokeStyle = '#1c1917';
+                    ctx.lineWidth = 1.6;
+                    ctx.beginPath();
+                    ctx.moveTo(ex - 2.4, -3.2);
+                    ctx.lineTo(ex + 2.4, -3.5);
+                    ctx.stroke();
+
+                    if (isBlinking) {
+                        ctx.beginPath();
+                        ctx.moveTo(ex - 2.2, 0);
+                        ctx.lineTo(ex + 2.2, 0);
+                        ctx.stroke();
+                    } else {
+                        // Sclera
+                        ctx.fillStyle = '#ffffff';
+                        ctx.beginPath();
+                        ctx.ellipse(ex, 0, 2.5, 2.7, 0, 0, Math.PI * 2);
+                        ctx.fill();
+
+                        // Dark brown iris
+                        ctx.fillStyle = '#1c1917';
+                        ctx.beginPath();
+                        ctx.arc(ex + dirX * 0.6, 0.2, 1.6, 0, Math.PI * 2);
+                        ctx.fill();
+
+                        // Specular eye shine
+                        ctx.fillStyle = '#ffffff';
+                        ctx.beginPath();
+                        ctx.arc(ex + dirX * 0.6 - 0.6, -0.5, 0.65, 0, Math.PI * 2);
+                        ctx.fill();
+                    }
+                });
+
+                // Warm cheek blush
+                ctx.fillStyle = 'rgba(239, 68, 68, 0.22)';
+                if (isSide) {
+                    ctx.beginPath();
+                    ctx.ellipse(faceShiftX + dirX * 1.5, 3.2, 2.6, 1.5, 0, 0, Math.PI * 2);
+                    ctx.fill();
+                } else {
+                    ctx.beginPath();
+                    ctx.ellipse(-6.2, 3.2, 2.4, 1.4, 0, 0, Math.PI * 2);
+                    ctx.ellipse(6.2, 3.2, 2.4, 1.4, 0, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+
+                // Nose & confident explorer smile
+                ctx.strokeStyle = '#9a3412';
+                ctx.lineWidth = 1.4;
+                ctx.beginPath();
+                if (isSide) {
+                    ctx.moveTo(faceShiftX + dirX * 3.5, 2.5);
+                    ctx.lineTo(faceShiftX + dirX * 1.2, 4.5);
+                } else {
+                    ctx.arc(faceShiftX, 4.2, 2.4, 0.15 * Math.PI, 0.85 * Math.PI);
+                }
+                ctx.stroke();
+            }
+
+            // 7. Classic Nusantara Archaeologist Fedora / Safari Hat with Brass Goggles
+            ctx.save();
+            ctx.translate(0, -9);
+
+            // Wide curved hat brim
+            ctx.fillStyle = '#92400e';
+            ctx.strokeStyle = '#292524';
+            ctx.lineWidth = 1.8;
+            ctx.beginPath();
+            ctx.ellipse(dirX * 1.5, 2, 16.5, 5.2, 0, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.stroke();
+
+            // Hat crown
+            const crownGrad = ctx.createLinearGradient(0, -10, 0, 2);
+            crownGrad.addColorStop(0, '#d97706');
+            crownGrad.addColorStop(1, '#b45309');
+            ctx.fillStyle = crownGrad;
+            ctx.beginPath();
+            ctx.moveTo(-10.5, 1.5);
+            ctx.quadraticCurveTo(-9.5, -9.5, -4, -9);
+            ctx.lineTo(0, -8);
+            ctx.lineTo(4, -9);
+            ctx.quadraticCurveTo(9.5, -9.5, 10.5, 1.5);
+            ctx.closePath();
+            ctx.fill();
+            ctx.stroke();
+
+            // Red-Gold Batik Hat Band
+            ctx.fillStyle = '#78350f';
+            ctx.fillRect(-10, -1.5, 20, 2.8);
+
+            // Explorer Brass Goggles resting on hat crown
+            if (player.facing !== 'up') {
+                const goggleShift = dirX * 2.5;
+                ctx.fillStyle = '#fbbf24';
+                ctx.strokeStyle = '#451a03';
+                ctx.lineWidth = 1.3;
+                [-4 + goggleShift, 4 + goggleShift].forEach(gx => {
+                    ctx.beginPath();
+                    ctx.arc(gx, -2.5, 3.1, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.stroke();
+
+                    // Cyan lens reflection
+                    ctx.fillStyle = '#38bdf8';
+                    ctx.beginPath();
+                    ctx.arc(gx, -2.5, 1.9, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.fillStyle = '#fbbf24';
+                });
+            }
+            ctx.restore();
+
+            ctx.restore(); // End head
+            ctx.restore(); // End player transform
+        }
+
+        function drawCompassPointers() {
+            let nearest = null;
+            let minDist = Infinity;
+            CANDI_DATA.forEach(c => {
+                if (!isCandiFullySolved(c)) {
+                    const d = Math.hypot(c.x - player.x, c.y - player.y);
+                    if (d < minDist) {
+                        minDist = d;
+                        nearest = c;
+                    }
+                }
+            });
+
+            if (!nearest || minDist < 320) return;
+
+            const angle = Math.atan2(nearest.y - player.y, nearest.x - player.x);
+            const radius = Math.min(canvas.width, canvas.height) * 0.36;
+            const px = canvas.width / 2 + Math.cos(angle) * radius;
+            const py = canvas.height / 2 + Math.sin(angle) * radius;
+
+            ctx.save();
+            ctx.translate(px, py);
+            ctx.fillStyle = 'rgba(120, 53, 15, 0.92)';
+            ctx.strokeStyle = '#fbbf24';
+            ctx.lineWidth = 2.5;
+            ctx.beginPath();
+            ctx.arc(0, 0, 24, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.stroke();
+
+            ctx.save();
+            ctx.rotate(angle);
+            ctx.fillStyle = '#fbbf24';
+            ctx.beginPath();
+            ctx.moveTo(30, 0);
+            ctx.lineTo(19, -8);
+            ctx.lineTo(19, 8);
+            ctx.closePath();
+            ctx.fill();
+            ctx.restore();
+
+            ctx.font = '14px sans-serif';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText('🔥', 0, -1);
+
+            ctx.font = 'bold 10px "Plus Jakarta Sans", sans-serif';
+            ctx.fillStyle = '#fef3c7';
+            ctx.fillText(`${nearest.topic} (${Math.round(minDist / 10)}m)`, 0, 34);
+            ctx.restore();
+        }
+
+        function drawMinimap() {
+            const mapW = 155;
+            const mapH = 115;
+            const pad = 14;
+            const mx = canvas.width - mapW - pad;
+            const my = 74;
+
+            ctx.save();
+            ctx.fillStyle = 'rgba(28, 25, 23, 0.85)';
+            ctx.strokeStyle = '#d97706';
+            ctx.lineWidth = 2.5;
+            ctx.beginPath();
+            ctx.roundRect(mx, my, mapW, mapH, 12);
+            ctx.fill();
+            ctx.stroke();
+
+            ctx.fillStyle = '#3f6212';
+            ctx.beginPath();
+            ctx.roundRect(mx + 6, my + 6, mapW - 12, mapH - 12, 8);
+            ctx.fill();
+
+            const scaleX = (mapW - 12) / WORLD_WIDTH;
+            const scaleY = (mapH - 12) / WORLD_HEIGHT;
+
+            CANDI_DATA.forEach(c => {
+                const cx = mx + 6 + c.x * scaleX;
+                const cy = my + 6 + c.y * scaleY;
+                ctx.fillStyle = isCandiFullySolved(c) ? '#34d399' : '#fbbf24';
+                ctx.beginPath();
+                ctx.arc(cx, cy, 4.5, 0, Math.PI * 2);
+                ctx.fill();
+            });
+
+            const px = mx + 6 + player.x * scaleX;
+            const py = my + 6 + player.y * scaleY;
+            ctx.fillStyle = '#ffffff';
+            ctx.beginPath();
+            ctx.arc(px, py, 4.5, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.strokeStyle = '#ef4444';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+
+            ctx.restore();
+        }
+
+        function showToast(icon, title, message) {
+            const banner = document.getElementById('toastBanner');
+            document.getElementById('toastIcon').textContent = icon;
+            document.getElementById('toastTitle').textContent = title;
+            document.getElementById('toastMessage').textContent = message;
+
+            banner.classList.remove('opacity-0', '-translate-y-4');
+            banner.classList.add('opacity-100', 'translate-y-0');
+
+            clearTimeout(window.toastTimer);
+            window.toastTimer = setTimeout(() => {
+                banner.classList.remove('opacity-100', 'translate-y-0');
+                banner.classList.add('opacity-0', '-translate-y-4');
+            }, 3800);
+        }
+
+        function updateHUDCounters() {
+            const solvedCandiCount = CANDI_DATA.filter(c => isCandiFullySolved(c)).length;
+            const collectedCount = RELICS.filter(r => r.collected).length;
+            document.getElementById('candiCountText').textContent = `${solvedCandiCount}/${CANDI_DATA.length}`;
+            document.getElementById('relicCountText').textContent = `${collectedCount}/${RELICS.length}`;
+            document.getElementById('scoreText').textContent = `${playerXP} XP`;
+        }
+
+        function updateGame(dt) {
+            clouds.forEach(c => {
+                c.x += c.speed * dt;
+                if (c.x > WORLD_WIDTH + 150) c.x = -150;
+            });
+
+            let dx = 0;
+            let dy = 0;
+            if (keys.up) dy -= 1;
+            if (keys.down) dy += 1;
+            if (keys.left) dx -= 1;
+            if (keys.right) dx += 1;
+
+            if (dx !== 0 || dy !== 0) {
+                player.targetX = null;
+                player.targetY = null;
+            } else if (player.targetX !== null && player.targetY !== null) {
+                const distToTarget = Math.hypot(player.targetX - player.x, player.targetY - player.y);
+                if (distToTarget > 8) {
+                    dx = (player.targetX - player.x) / distToTarget;
+                    dy = (player.targetY - player.y) / distToTarget;
+                } else {
+                    player.targetX = null;
+                    player.targetY = null;
+                }
+            }
+
+            const len = Math.hypot(dx, dy);
+            if (len > 1) {
+                dx /= len;
+                dy /= len;
+            }
+
+            player.sprinting = keys.sprint;
+            const currentSpeed = player.baseSpeed * (player.sprinting ? player.sprintMultiplier : 1);
+
+            player.vx = dx * currentSpeed;
+            player.vy = dy * currentSpeed;
+
+            if (Math.abs(player.vx) > Math.abs(player.vy)) {
+                if (player.vx < -5) player.facing = 'left';
+                if (player.vx > 5) player.facing = 'right';
+            } else if (Math.abs(player.vy) > 5) {
+                if (player.vy < -5) player.facing = 'up';
+                if (player.vy > 5) player.facing = 'down';
+            }
+
+            let nextX = Math.max(110, Math.min(WORLD_WIDTH - 110, player.x + player.vx * dt));
+            let nextY = Math.max(110, Math.min(WORLD_HEIGHT - 110, player.y + player.vy * dt));
+
+            MOUNTAINS.forEach(m => {
+                const dist = Math.hypot(nextX - m.x, nextY - m.y);
+                const minDist = m.radius * 0.72;
+                if (dist < minDist) {
+                    const pushAngle = Math.atan2(nextY - m.y, nextX - m.x);
+                    nextX = m.x + Math.cos(pushAngle) * minDist;
+                    nextY = m.y + Math.sin(pushAngle) * minDist;
+                }
+            });
+
+            player.x = nextX;
+            player.y = nextY;
+
+            updatePlayerParticles(dt, Math.hypot(player.vx, player.vy) > 5);
+
+            camera.x += (player.x - camera.x) * Math.min(1, dt * 8);
+            camera.y += (player.y - camera.y) * Math.min(1, dt * 8);
+
+            // Check Relic Collection (with Kalor fact toast + XP)
+            RELICS.forEach(r => {
+                if (!r.collected && Math.hypot(player.x - r.x, player.y - r.y) < 38) {
+                    r.collected = true;
+                    playerXP += 25;
+                    playGamelanChord('relic');
+                    updateHUDCounters();
+                    showToast(r.icon, `${r.name} (+25 XP)`, r.fact);
+                }
+            });
+
+            // Check Proximity to Candi
+            let foundNear = null;
+            CANDI_DATA.forEach(candi => {
+                const dist = Math.hypot(player.x - candi.x, player.y - candi.y);
+                if (dist < candi.radius + 35) {
+                    foundNear = candi;
+                    if (!candi.discovered) {
+                        candi.discovered = true;
+                        playGamelanChord('discover');
+                        updateHUDCounters();
+                        showToast('🛕', `${candi.name}`, `Misi: ${candi.topic}`);
+                    }
+                }
+            });
+
+            const promptEl = document.getElementById('interactPrompt');
+            const locText = document.getElementById('locationText');
+            if (foundNear) {
+                activeNearbyCandi = foundNear;
+                promptEl.classList.remove('hidden');
+                document.getElementById('interactPromptText').textContent = `Tantangan ${foundNear.topic} (${foundNear.name})`;
+                locText.textContent = `📍 ${foundNear.name} • Topik: ${foundNear.topic}`;
+            } else {
+                activeNearbyCandi = null;
+                promptEl.classList.add('hidden');
+                locText.textContent = '🌿 Kepulauan Nusantara';
+            }
+        }
+
+        function openCandiModal(candi, stageIndex = null) {
+            if (!candi) return;
+            if (stageIndex !== null) {
+                candi.currentStage = stageIndex;
+            }
+            playGamelanChord('click');
+
+            const stageIdx = candi.currentStage || 0;
+            const currentChallenge = candi.challenges[stageIdx];
+
+            const topicBadge = document.getElementById('modalTopicBadge');
+            topicBadge.textContent = `Materi: ${candi.topic}`;
+            topicBadge.className = `text-xs font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full text-white shadow ${candi.topicBadgeColor}`;
+
+            document.getElementById('modalTitle').textContent = candi.name;
+            document.getElementById('modalRegion').innerHTML = `<i class="fa-solid fa-location-dot"></i> ${candi.region}`;
+            document.getElementById('modalDesc').textContent = candi.description;
+            document.getElementById('modalFormulaDesc').textContent = candi.formulaDesc;
+            document.getElementById('modalFormulaMath').textContent = candi.formulaMath;
+
+            // Render Stage Switcher Pills (Soal 1 & Soal 2)
+            const pillsContainer = document.getElementById('stagePills');
+            pillsContainer.innerHTML = '';
+            candi.challenges.forEach((ch, idx) => {
+                const pill = document.createElement('button');
+                const isActive = idx === stageIdx;
+                pill.className = `text-xs font-bold px-2.5 py-1 rounded-lg border transition ${
+                    isActive
+                        ? 'bg-amber-800 text-white border-amber-950'
+                        : 'bg-white text-stone-700 border-stone-300 hover:bg-amber-100'
+                }`;
+                pill.innerHTML = `Soal ${idx + 1} ${ch.solved ? '✓' : ''}`;
+                pill.onclick = () => openCandiModal(candi, idx);
+                pillsContainer.appendChild(pill);
+            });
+
+            const solvedCount = candi.challenges.filter(ch => ch.solved).length;
+            const statusBadge = document.getElementById('quizStatusBadge');
+            if (solvedCount === candi.challenges.length) {
+                statusBadge.textContent = `🔥 ${solvedCount}/2 Tuntas!`;
+                statusBadge.className = 'text-xs font-bold px-2.5 py-0.5 rounded-md bg-emerald-200 text-emerald-900';
+            } else {
+                statusBadge.textContent = `${solvedCount}/2 Selesai`;
+                statusBadge.className = 'text-xs font-bold px-2.5 py-0.5 rounded-md bg-amber-200 text-amber-900';
+            }
+
+            // Render Question, Hint & Options
+            document.getElementById('quizQuestion').textContent = `[Soal ${stageIdx + 1}] ${currentChallenge.question}`;
+            const hintBox = document.getElementById('hintBox');
+            hintBox.textContent = `💡 Petunjuk: ${currentChallenge.hint}`;
+            hintBox.classList.add('hidden');
+
+            document.getElementById('btnShowHint').onclick = () => {
+                hintBox.classList.toggle('hidden');
+            };
+
+            const nextBtn = document.getElementById('btnNextQuestion');
+            if (stageIdx === 0 && currentChallenge.solved) {
+                nextBtn.classList.remove('hidden');
+                nextBtn.onclick = () => openCandiModal(candi, 1);
+            } else {
+                nextBtn.classList.add('hidden');
+            }
+
+            const optsContainer = document.getElementById('quizOptions');
+            const feedback = document.getElementById('quizFeedback');
+            optsContainer.innerHTML = '';
+
+            if (currentChallenge.solved) {
+                feedback.innerHTML = `<strong>✅ Pembahasan:</strong> ${currentChallenge.explanation}`;
+                feedback.className = 'text-xs p-3 rounded-xl bg-emerald-100 border border-emerald-400 text-emerald-950 block';
+            } else {
+                feedback.classList.add('hidden');
+            }
+
+            currentChallenge.options.forEach((optText, idx) => {
+                const btn = document.createElement('button');
+                const isCorrectChoice = currentChallenge.solved && idx === currentChallenge.correct;
+                btn.className = 'w-full text-left px-3.5 py-2.5 rounded-xl border text-xs sm:text-sm font-semibold transition flex items-center justify-between ' +
+                    (isCorrectChoice
+                        ? 'bg-emerald-600 text-white border-emerald-700 shadow-sm'
+                        : 'bg-white hover:bg-amber-100 text-stone-800 border-stone-300');
+
+                const letter = ['A', 'B', 'C', 'D'][idx];
+                btn.innerHTML = `<span><strong class="mr-1.5">${letter}.</strong> ${optText}</span>`;
+
+                btn.onclick = () => {
+                    if (idx === currentChallenge.correct) {
+                        if (!currentChallenge.solved) {
+                            currentChallenge.solved = true;
+                            playerXP += 100;
+                            updateHUDCounters();
+                        }
+                        playGamelanChord('quizSuccess');
+                        openCandiModal(candi, stageIdx);
+                        if (isCandiFullySolved(candi)) {
+                            showToast('🔥', `Obor ${candi.name} Menyala!`, `Kamu menguasai materi ${candi.topic} (+100 XP)`);
+                        }
+                    } else {
+                        playGamelanChord('click');
+                        feedback.innerHTML = `<strong>🤔 Kurang tepat!</strong> Klik tombol <em>"Lihat Petunjuk Cara Hitung"</em> di atas untuk melihat rumus dan langkah perhitungannya.`;
+                        feedback.className = 'text-xs p-3 rounded-xl bg-red-100 border border-red-300 text-red-900 block';
+                    }
+                };
+                optsContainer.appendChild(btn);
+            });
+
+            const modal = document.getElementById('candiModal');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        }
+
+        function closeCandiModal() {
+            const modal = document.getElementById('candiModal');
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+        }
+
+        function openFormulaModal() {
+            playGamelanChord('click');
+            const modal = document.getElementById('formulaModal');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        }
+
+        function closeFormulaModal() {
+            const modal = document.getElementById('formulaModal');
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+        }
+
+        function openJournalModal() {
+            playGamelanChord('click');
+            const grid = document.getElementById('journalGrid');
+            grid.innerHTML = '';
+
+            CANDI_DATA.forEach(c => {
+                const solvedCount = c.challenges.filter(ch => ch.solved).length;
+                const fullySolved = solvedCount === c.challenges.length;
+
+                const card = document.createElement('div');
+                card.className = `p-4 rounded-2xl border-2 flex flex-col justify-between gap-3 ${
+                    fullySolved ? 'bg-emerald-50/70 border-emerald-500 shadow-md' : 'bg-white border-amber-300 shadow-sm'
+                }`;
+
+                card.innerHTML = `
+                    <div>
+                        <div class="flex items-center justify-between gap-2">
+                            <span class="text-[11px] font-bold px-2.5 py-0.5 rounded-full text-white ${c.topicBadgeColor}">
+                                🔥 ${c.topic}
+                            </span>
+                            <span class="text-xs font-bold ${fullySolved ? 'text-emerald-700' : 'text-amber-800'}">
+                                ${fullySolved ? '🏆 2/2 Selesai' : `📝 ${solvedCount}/2 Soal`}
+                            </span>
+                        </div>
+                        <h3 class="font-game font-bold text-lg text-stone-900 mt-1.5">${c.name}</h3>
+                        <p class="text-xs text-stone-500 font-semibold"><i class="fa-solid fa-location-dot text-amber-600"></i> ${c.region}</p>
+                        <div class="mt-2 bg-stone-100 px-2.5 py-1.5 rounded-lg font-mono text-xs text-amber-950 font-bold border border-stone-200">
+                            ${c.formulaMath}
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-2 pt-2 border-t border-stone-200">
+                        <button data-teleport="${c.id}" class="flex-1 bg-emerald-600 hover:bg-emerald-500 text-white font-game font-bold py-2 px-3 rounded-xl text-xs flex items-center justify-center gap-1.5 transition">
+                            <i class="fa-solid fa-location-arrow"></i> Teleport ke Candi
+                        </button>
+                        <button data-info="${c.id}" class="bg-amber-500 hover:bg-amber-400 text-amber-950 font-game font-bold py-2 px-3 rounded-xl text-xs transition">
+                            Buka Tantangan
+                        </button>
+                    </div>
+                `;
+                grid.appendChild(card);
+            });
+
+            grid.querySelectorAll('[data-teleport]').forEach(btn => {
+                btn.onclick = () => {
+                    const target = CANDI_DATA.find(c => c.id === btn.dataset.teleport);
+                    if (target) {
+                        player.x = target.x;
+                        player.y = target.y + target.radius - 10;
+                        player.targetX = null;
+                        player.targetY = null;
+                        closeJournalModal();
+                        showToast('✨', `Teleportasi ke ${target.name}`, `Topik: ${target.topic}`);
+                    }
+                };
+            });
+
+            grid.querySelectorAll('[data-info]').forEach(btn => {
+                btn.onclick = () => {
+                    const target = CANDI_DATA.find(c => c.id === btn.dataset.info);
+                    if (target) {
+                        closeJournalModal();
+                        openCandiModal(target);
+                    }
+                };
+            });
+
+            const modal = document.getElementById('journalModal');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        }
+
+        function closeJournalModal() {
+            const modal = document.getElementById('journalModal');
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+        }
+
+        window.addEventListener('keydown', e => {
+            const code = e.code;
+            if (code === 'KeyW' || code === 'ArrowUp') keys.up = true;
+            if (code === 'KeyS' || code === 'ArrowDown') keys.down = true;
+            if (code === 'KeyA' || code === 'ArrowLeft') keys.left = true;
+            if (code === 'KeyD' || code === 'ArrowRight') keys.right = true;
+            if (code === 'ShiftLeft' || code === 'ShiftRight') keys.sprint = true;
+            if (code === 'Space' || code === 'Enter') {
+                if (activeNearbyCandi && document.getElementById('candiModal').classList.contains('hidden')) {
+                    openCandiModal(activeNearbyCandi);
+                }
+            }
+            if (code === 'Escape') {
+                closeCandiModal();
+                closeJournalModal();
+                closeFormulaModal();
+            }
+        });
+
+        window.addEventListener('keyup', e => {
+            const code = e.code;
+            if (code === 'KeyW' || code === 'ArrowUp') keys.up = false;
+            if (code === 'KeyS' || code === 'ArrowDown') keys.down = false;
+            if (code === 'KeyA' || code === 'ArrowLeft') keys.left = false;
+            if (code === 'KeyD' || code === 'ArrowRight') keys.right = false;
+            if (code === 'ShiftLeft' || code === 'ShiftRight') keys.sprint = false;
+        });
+
+        canvas.addEventListener('pointerdown', e => {
+            const camX = Math.max(canvas.width / 2, Math.min(WORLD_WIDTH - canvas.width / 2, camera.x));
+            const camY = Math.max(canvas.height / 2, Math.min(WORLD_HEIGHT - canvas.height / 2, camera.y));
+            const worldX = e.clientX - (canvas.width / 2 - camX);
+            const worldY = e.clientY - (canvas.height / 2 - camY);
+
+            for (const c of CANDI_DATA) {
+                if (Math.hypot(worldX - c.x, worldY - c.y) < c.radius * 0.85) {
+                    if (Math.hypot(player.x - c.x, player.y - c.y) < c.radius + 60) {
+                        openCandiModal(c);
+                        return;
+                    }
+                }
+            }
+
+            player.targetX = Math.max(110, Math.min(WORLD_WIDTH - 110, worldX));
+            player.targetY = Math.max(110, Math.min(WORLD_HEIGHT - 110, worldY));
+        });
+
+        document.querySelectorAll('[data-dir]').forEach(btn => {
+            const dir = btn.dataset.dir;
+            const activate = (ev) => {
+                ev.preventDefault();
+                keys[dir] = true;
+                btn.classList.add('active');
+            };
+            const deactivate = (ev) => {
+                ev.preventDefault();
+                keys[dir] = false;
+                btn.classList.remove('active');
+            };
+            btn.addEventListener('pointerdown', activate);
+            btn.addEventListener('pointerup', deactivate);
+            btn.addEventListener('pointerleave', deactivate);
+            btn.addEventListener('pointercancel', deactivate);
+        });
+
+        const btnSprint = document.getElementById('btnSprint');
+        btnSprint.addEventListener('pointerdown', e => {
+            e.preventDefault();
+            keys.sprint = true;
+            btnSprint.classList.add('active');
+        });
+        btnSprint.addEventListener('pointerup', e => {
+            e.preventDefault();
+            keys.sprint = false;
+            btnSprint.classList.remove('active');
+        });
+
+        document.getElementById('btnInteract').onclick = () => openCandiModal(activeNearbyCandi);
+        document.getElementById('closeCandiModal').onclick = closeCandiModal;
+        document.getElementById('btnModalDone').onclick = closeCandiModal;
+        document.getElementById('btnJournal').onclick = openJournalModal;
+        document.getElementById('closeJournalModal').onclick = closeJournalModal;
+        document.getElementById('btnFormula').onclick = openFormulaModal;
+        document.getElementById('closeFormulaModal').onclick = closeFormulaModal;
+
+        document.getElementById('btnTime').onclick = () => {
+            timeOfDay = (timeOfDay + 1) % TIME_MODES.length;
+            document.getElementById('timeIcon').className = `fa-solid ${TIME_MODES[timeOfDay].icon}`;
+            showToast('🌤️', `Suasana: ${TIME_MODES[timeOfDay].name}`, 'Perubahan waktu memengaruhi radiasi & konveksi di sekitar candi');
+            playGamelanChord('click');
+        };
+
+        document.getElementById('btnAudio').onclick = () => {
+            soundEnabled = !soundEnabled;
+            document.getElementById('audioIcon').className = soundEnabled ? 'fa-solid fa-volume-high' : 'fa-solid fa-volume-xmark text-red-400';
+            if (soundEnabled) playGamelanChord('click');
+        };
+
+        document.getElementById('btnStartGame').onclick = () => {
+            document.getElementById('welcomeModal').classList.add('hidden');
+            playGamelanChord('discover');
+            showToast('🔥', 'Misi Fisika Kalor Dimulai!', 'Kunjungi Candi Borobudur di dekatmu atau buka Kitab Rumus Kalor');
+        };
+
+        let lastTime = performance.now();
+        function gameLoop(now) {
+            const dt = Math.min(0.05, (now - lastTime) / 1000);
+            lastTime = now;
+
+            updateGame(dt);
+            drawWorld(now / 1000);
+
+            requestAnimationFrame(gameLoop);
+        }
+
+        window.onload = function () {
+            generateWorldScenery();
+            updateHUDCounters();
+            requestAnimationFrame(gameLoop);
+        };
+    </script>
+</body>
+</html>
